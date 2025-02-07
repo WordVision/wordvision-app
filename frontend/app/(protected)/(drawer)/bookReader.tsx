@@ -240,7 +240,7 @@ const BookReader: React.FC = () => {
         console.error("Unable to extract highlight ID from imgUrl:", imgUrl);
         return;
       }
-  
+
       setModalVisible(true);
 
       const putSuccess = await regenerateHighlightImage(
@@ -255,9 +255,9 @@ const BookReader: React.FC = () => {
           bookId,
           highlightId
         );
-  
+
         const timestampedUrl = `${updatedHighlight.imgUrl}?t=${new Date().getTime()}`;
-  
+
         setHighlights(
           highlights.map((h) =>
             h.location === selectedHighlight?.location
@@ -278,28 +278,28 @@ const BookReader: React.FC = () => {
       setModalVisible(false);
     }
   };
-  
+
   const handleGenerateNewImage = async (highlight: Selection) => {
     if (!highlight || !highlight.text || !highlight.id) {
       console.error("Invalid highlight selected for image generation");
       return;
     }
-  
+
     try {
       // Show the loading modal
       setSaveMessage("Generating image...");
       setModalVisible(true);
-  
+
       // Generate the new image using the backend service
       const newImageUrl = await generateHighlightImage(user, bookId, highlight.id);
-  
+
       // Update the highlights array with the new image URL
       setHighlights((prevHighlights) =>
         prevHighlights.map((h) =>
           h.id === highlight.id ? { ...h, imgUrl: newImageUrl } : h
         )
       );
-  
+
       // Update the selected highlight if it matches the generated one
       setSelectedHighlight((prev) => {
         if (prev && prev.id === highlight.id) {
@@ -310,7 +310,7 @@ const BookReader: React.FC = () => {
         }
         return prev;
       });
-  
+
       console.log("Image successfully generated:", newImageUrl);
     } catch (error) {
       console.error("Error while generating new image:", error);
@@ -319,9 +319,9 @@ const BookReader: React.FC = () => {
       // Hide the loading modal
       setModalVisible(false);
     }
-  };  
-  
-  
+  };
+
+
   const handleHighlight = async () => {
     if (rendition && selection) {
       setSaveMessage("Saving highlight...");
@@ -356,7 +356,7 @@ const BookReader: React.FC = () => {
               ...prev,
               {
                 id: response.highlightId,
-               ...selection, 
+               ...selection,
               }
             ]
           });
@@ -396,7 +396,7 @@ const BookReader: React.FC = () => {
             item.id === highlightId ? { ...item, imgUrl: undefined } : item
           )
         );
-        setImageModalVisible(false); 
+        setImageModalVisible(false);
       } else {
         const errorData = await response.json();
         setError(`Error removing image: ${errorData.message}`);
@@ -424,9 +424,31 @@ const BookReader: React.FC = () => {
 
         if (response.ok) {
           const data = await response.json();
+          const highlight = { ...selection, imgUrl: data.imgUrl, id: data.highlightId };
+
           setGeneratedImageUrl(data.imgUrl || null);
           setHighlights([...highlights, { ...selection, imgUrl: data.imgUrl, id: data.highlightId }]);
-        } 
+
+          rendition.annotations.add(
+            "highlight",
+            highlight.location,
+            {},
+            () => handleHighlightClick(highlight),
+            "hl",
+            {
+              fill: "red",
+              "fill-opacity": "0.5",
+              "mix-blend-mode": "multiply",
+            }
+          );
+
+          // @ts-ignore: DO NOT REMOVE THIS COMMENT
+          // This annotation was added because typescript throws an error
+          //   for getContents()[0]
+          // The return type for getContents() is outdated and actually returns
+          //   Contents[] instead of Contents
+          rendition.getContents()[0]?.window?.getSelection()?.removeAllRanges();
+        }
         else {
           console.error("Failed to visualize highlight", response);
           setSaveError(true);
@@ -440,7 +462,7 @@ const BookReader: React.FC = () => {
     }
     setContextMenu({ visible: false, x: 0, y: 0 });
   };
-  
+
   const handleHighlightClick = (highlight: Highlight) => {
     setSelectedHighlight(highlight);
     setImageModalVisible(true);
@@ -569,7 +591,7 @@ const BookReader: React.FC = () => {
     );
   }
 
-  
+
 
   return (
     <View style={{ flex: 1 }}>

@@ -2,9 +2,11 @@ import {
   Image,
   StyleSheet,
   View,
+  TextInput,
   TouchableOpacity,
   ActivityIndicator,
   Text,
+  Pressable,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { Redirect } from "expo-router";
@@ -15,6 +17,8 @@ import Loading from "@/components/Loading";
 export default function LandingPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+
+  const [email, setEmail] = useState<string>("");
 
   useEffect(() => {
     async function init() {
@@ -41,45 +45,158 @@ export default function LandingPage() {
   } else {
     return (
       <View style={styles.container}>
-        <Image
-          source={require("@/assets/images/landingPage_image.jpg")}
-          style={styles.Logo}
-        />
 
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            onPress={() => Auth.federatedSignIn()}
-            style={styles.uploadButton}
-          >
-            <Text style={styles.buttonText}>Get Started</Text>
-          </TouchableOpacity>
+        <View style={styles.logoContainer}>
+          <Image
+            source={require("@/assets/images/logo.png")}
+            style={styles.logo} />
+          <Text style={styles.logoTitle}>WordVision</Text>
+          <Text style={styles.logoSubtitle}>Where stories come to life</Text>
         </View>
 
-        <View style={styles.textContainer}>
-          <Text style={styles.centerText}>
-            Let's start a Journey of New gen Book Reader
-          </Text>
+        <View style={styles.loginBox}>
+
+          <Text style={styles.loginTitle}>Log in</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Email</Text>
+            <TextInput
+              style={styles.input}
+              onChangeText={setEmail}
+              value={email}
+            />
+
+          </View>
+
+          <Pressable style={styles.nextButton}>
+            <Text style={styles.buttonText}>Continue</Text>
+          </Pressable>
+
+          <Text style={styles.buttonText}>- or -</Text>
+
+          <Pressable style={styles.socialButton}>
+            <Image
+              source={require("@/assets/images/google.png")}
+              style={styles.buttonLogo} />
+            <Text style={styles.buttonText}>Continue with Google</Text>
+          </Pressable>
+
+
+
+
+
         </View>
+
       </View>
     );
   }
 }
 
 const styles = StyleSheet.create({
+
+
+  loginBox: {
+    width: "90%",
+    padding: 24,
+    backgroundColor: "white",
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+    // boxShadow: 10px 5px 5px red,
+    // filter: drop-shadow(30px 10px 4px #4444dd);
+  },
+
+  loginTitle: {
+    fontFamily: "Quando_400Regular",
+    color: "black",
+    fontSize: 24,
+  },
+
+  inputGroup: {
+    width: "100%",
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+  },
+
+  inputLabel: {
+    fontFamily: "AtkinsonHyperlegible_400Regular",
+    color: "black",
+    fontSize: 16
+  },
+
+  input: {
+    fontFamily: "AtkinsonHyperlegible_400Regular",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    color: "black",
+    fontSize: 16,
+    borderWidth: 1,
+    borderRadius: 2
+  },
+
+  nextButton: {
+    width: "100%",
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    backgroundColor: "#80D4FF",
+    borderWidth: 1,
+    borderRadius: 2
+  },
+
+  socialButton: {
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    width: "100%",
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderRadius: 2
+  },
+
+  buttonText: {
+    fontFamily: "AtkinsonHyperlegible_400Regular",
+    textAlign: "center",
+    color: "black",
+    fontSize: 16,
+  },
+
   container: {
     flex: 1,
-    justifyContent: "flex-start",
+    display: "flex",
+    gap: 48,
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#005675"
   },
-  Logo: {
-    height: "100%",
-    width: "100%",
-    position: "absolute",
+  logoContainer: {
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  headerRight: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    zIndex: 1,
+  logo: {
+    height: 78,
+    width: 108,
+  },
+  buttonLogo: {
+    height: 20,
+    width: 20,
+    resizeMode: "cover",
+  },
+  logoTitle: {
+    fontFamily: "Quando_400Regular",
+    color: "white",
+    fontSize: 40
+  },
+  logoSubtitle: {
+    fontFamily: "AtkinsonHyperlegible_400Regular",
+    color: "white",
+    fontSize: 14
   },
   uploadButton: {
     backgroundColor: "#007BFF",
@@ -87,11 +204,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     borderRadius: 5,
   },
-  buttonText: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    fontSize: 20,
-  },
+  // buttonText: {
+  //   color: "#FFFFFF",
+  //   fontWeight: "bold",
+  //   fontSize: 20,
+  // },
   textContainer: {
     flex: 1,
     justifyContent: "center",

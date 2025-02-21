@@ -15,6 +15,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <AuthProvider>
+        <StatusBar translucent={true} style="auto" />
         <Slot />
       </AuthProvider>
     </ThemeProvider>

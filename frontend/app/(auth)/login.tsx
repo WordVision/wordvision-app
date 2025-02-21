@@ -68,6 +68,8 @@ export default function LandingPage() {
             <TextInput
               style={styles.input}
               onChangeText={setEmail}
+              inputMode="email"
+              autoCapitalize="none"
               value={email}
             />
           </View>

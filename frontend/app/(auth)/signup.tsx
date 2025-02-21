@@ -8,6 +8,7 @@ import {
   Alert,
   ScrollView,
   Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useNavigation } from "expo-router";
@@ -15,59 +16,74 @@ import Icon from "react-native-vector-icons/Ionicons";
 import { supabase } from '@/lib/supabase'
 import { makeRedirectUri } from "expo-auth-session";
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Controller, useForm } from "react-hook-form";
+
+import {z} from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 
 
 export default function LandingPage() {
 
+  const schema = z.object({
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+    email: z.string().email(),
+    birthdate: z.date(),
+    password: z.string()
+      .min(8, "Password must be at least 8 characters")
+      .max(100, "Password is too long")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number")
+      .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+    confirmPassword: z.string()
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"]
+  });
+
+  type FormFields = z.infer<typeof schema>
+
   const redirectTo = makeRedirectUri();
   const navigation = useNavigation();
 
-  const [firstName, setFirstName] = useState<string>("");
-  const [lastName, setLastName] = useState<string>("");
-  const [birthdate, setBirthdate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [confirmPass, setConfirmPass] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
-
-    console.log(redirectTo);
   }, [navigation]);
 
-  async function signUpWithEmail() {
+
+  const { control, handleSubmit } = useForm<FormFields>({
+    defaultValues: {
+      birthdate: new Date(),
+    },
+    resolver: zodResolver(schema)
+  })
+
+  async function signUpWithEmail(formData: FormFields) {
     setLoading(true)
+
     const { data: { session }, error, } = await supabase.auth.signUp({
-      email: email,
-      password: password,
+      email: formData.email,
+      password: formData.password,
       options: {
-        emailRedirectTo: redirectTo + "/login"
+        emailRedirectTo: redirectTo + "/login",
+        data: {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          birthdate: formData.birthdate.toJSON(),
+        }
       }
     })
 
     if (error) Alert.alert(error.message)
     if (!session) Alert.alert('Please check your inbox for email verification!')
+
     setLoading(false)
   }
-
-  // function openDatePicker() {
-  //   DateTimePickerAndroid.open({
-  //     value: birthdate,
-  //     onChange: (_event, selectedDate) => {
-  //       const currentDate = selectedDate;
-  //       if (currentDate) setBirthdate(currentDate);
-  //     },
-  //     mode: "date",
-  //   });
-  // };
-
-  const onChange = (event: any, selectedDate: any) => {
-    const currentDate = selectedDate;
-    setShowDatePicker(false);
-    setBirthdate(currentDate);
-  };
 
   return (
     <View style={styles.container}>
@@ -80,179 +96,200 @@ export default function LandingPage() {
         <Text style={styles.logoTitle}>WordVision</Text>
       </View>
 
-      <View style={styles.loginBox}>
 
-        <View style={styles.navHeader}>
-          <Pressable onPress={() => navigation.goBack()}>
-            <Icon name="arrow-back" size={24} />
-          </Pressable>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ width: "100%"}}
+      >
+        <View style={styles.formBox} >
 
-          <Text style={styles.loginTitle}>Sign up</Text>
-        </View>
+          <View style={styles.formHeader}>
+            <Pressable onPress={() => navigation.goBack()}>
+              <Icon name="arrow-back" size={24} />
+            </Pressable>
 
-        <ScrollView style={styles.inputGroupContainer}>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>First Name</Text>
-            <TextInput
-              style={styles.input}
-              onChangeText={setFirstName}
-              value={firstName}
-            />
+            <Text style={styles.formTitle}>Sign up</Text>
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Last Name</Text>
-            <TextInput
-              style={styles.input}
-              onChangeText={setLastName}
-              value={lastName}
-            />
-          </View>
+          <ScrollView style={styles.inputGroupContainer}>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              Email<Text style={styles.required}>*</Text>
-            </Text>
-            <TextInput
-              style={styles.input}
-              inputMode="email"
-              autoCapitalize="none"
-              onChangeText={setEmail}
-              value={email}
-            />
-          </View>
+            <Controller
+              control={control}
+              render={({field: {onChange, onBlur, value}, fieldState: { error } }) => (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>First Name</Text>
 
-          {Platform.OS === "web" ?
-            <View style={styles.inputGroup} >
-              <Text style={styles.inputLabel}>
-                Birthdate<Text style={styles.required}>*</Text>
-              </Text>
-              <input type="date" style={styles.input}/>
-            </View>
-              :
-            <>
-              <Pressable
-                style={styles.inputGroup}
-                onPress={() => { setShowDatePicker(true)}}
-              >
+                  <TextInput
+                    style={styles.input}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                  />
+
+                  {error && <Text style={styles.errorMsg}>{error.message}</Text>}
+                </View>
+              )}
+              name="firstName"
+            />
+
+            <Controller
+              control={control}
+              render={({field: {onChange, onBlur, value}, fieldState: { error } }) => (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Last Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}/>
+                    {error && <Text style={styles.errorMsg}>{error.message}</Text>}
+                </View>
+              )}
+              name="lastName"
+            />
+
+            <Controller
+              control={control}
+              render={({field: {onChange, onBlur, value}, fieldState: { error } }) => (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    Email<Text style={styles.required}>*</Text>
+                  </Text>
+                  <TextInput
+                    style={[styles.input, {borderColor: error ? "red" : "black"}]}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                    inputMode="email"
+                    autoCapitalize="none" />
+                  {error && <Text style={styles.errorMsg}>{error.message}</Text>}
+                </View>
+              )}
+              name="email"
+            />
+
+            {Platform.OS === "web" ?
+              <View style={styles.inputGroup} >
                 <Text style={styles.inputLabel}>
                   Birthdate<Text style={styles.required}>*</Text>
                 </Text>
-                <TextInput
-                  style={styles.input}
-                  editable={false}
-                  value={birthdate.toLocaleDateString()}
-                />
-              </Pressable>
+                <input type="date" style={styles.input}/>
+              </View>
+              :
+              <Controller
+                control={control}
+                render={({field: {onChange, value}}) => (
+                  <>
+                  <Pressable
+                    style={styles.inputGroup}
+                    onPress={() => { setShowDatePicker(true)}}
+                  >
+                    <Text style={styles.inputLabel}>
+                      Birthdate<Text style={styles.required}>*</Text>
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      editable={false}
+                      value={value ? value.toLocaleDateString() : ""}
+                    />
+                  </Pressable>
 
-              {showDatePicker &&
-                <DateTimePicker
-                  testID="dateTimePicker"
-                  value={birthdate}
-                  mode="date"
-                  onChange={onChange}
-                />
-              }
-          </>}
+                  {showDatePicker &&
+                    <DateTimePicker
+                      testID="dateTimePicker"
+                      value={value}
+                      mode="date"
+                      maximumDate={new Date()}
+                      onChange={val => { setShowDatePicker(false); onChange(new Date(val.nativeEvent.timestamp)); }}
+                    />
+                  }
+                  </>
+                )}
+                name="birthdate"
+              />
+            }
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              Password<Text style={styles.required}>*</Text>
-            </Text>
-            <TextInput
-              style={styles.input}
-              onChangeText={setPassword}
-              autoCapitalize="none"
-              value={password}
-              secureTextEntry={true}
+            <Controller
+              control={control}
+              render={({field: {onChange, onBlur, value}, fieldState: { error } }) => (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    Password<Text style={styles.required}>*</Text>
+                  </Text>
+                  <TextInput
+                    style={[styles.input, {borderColor: error ? "red" : "black"}]}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                    secureTextEntry={true}
+                    autoCapitalize="none" />
+                  {error && <Text style={styles.errorMsg}>{error.message}</Text>}
+                </View>
+              )}
+              name="password"
             />
-          </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              Confirm Password<Text style={styles.required}>*</Text>
-            </Text>
-            <TextInput
-              style={styles.input}
-              onChangeText={setConfirmPass}
-              autoCapitalize="none"
-              value={confirmPass}
-              secureTextEntry={true}
+            <Controller
+              control={control}
+              render={({field: {onChange, onBlur, value}, fieldState: { error } }) => (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    Confirm Password<Text style={styles.required}>*</Text>
+                  </Text>
+                  <TextInput
+                    style={[styles.input, {borderColor: error ? "red" : "black"}]}
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                    secureTextEntry={true}
+                    autoCapitalize="none" />
+                  {error && <Text style={styles.errorMsg}>{error.message}</Text>}
+                </View>
+
+              )}
+              name="confirmPassword"
             />
-          </View>
 
-        </ScrollView>
+          </ScrollView>
 
-        <Pressable
-          style={styles.submit}
-          disabled={loading}
-          onPress={() => signUpWithEmail()}
-        >
-          <Text style={styles.buttonText}>Sign up</Text>
-        </Pressable>
+          <Pressable
+            style={styles.submit}
+            disabled={loading}
+            onPress={handleSubmit(signUpWithEmail)}
+          >
+            <Text style={styles.buttonText}>Sign up</Text>
+          </Pressable>
 
-        <Text style={styles.buttonText}>- or -</Text>
+          <Text style={styles.buttonText}>- or -</Text>
 
-        <Pressable style={styles.socialButton}>
-          <Image
-            source={require("@/assets/images/google.png")}
-            style={styles.buttonLogo} />
-          <Text style={styles.buttonText}>Continue with Google</Text>
-        </Pressable>
-      </View>
+          <Pressable style={styles.socialButton}>
+            <Image
+              source={require("@/assets/images/google.png")}
+              style={styles.buttonLogo} />
+            <Text style={styles.buttonText}>Continue with Google</Text>
+          </Pressable>
+        </View>
+
+      </KeyboardAvoidingView>
 
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  required: {
-    color: "#FF4A4A"
-  },
-
-  inputGroupContainer: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 4,
-    maxHeight: 300,
-  },
-
-  navHeader: {
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-
-  signup: {
-    color: "#005675",
-  },
-
-  button: {
-    fontFamily: "AtkinsonHyperlegible_400Regular",
-    textAlign: "center",
-    color: "black",
-    fontSize: 16,
-    width: "100%",
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    borderWidth: 1,
-    borderRadius: 2
-  },
-
   container: {
-    flex: 1,
+    height: "100%",
+    padding: 16,
+    backgroundColor: "#005675",
     display: "flex",
     gap: 12,
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#005675",
-    padding: 16,
   },
 
   logoContainer: {
+    marginTop: 64,
     display: "flex",
     flexDirection: "row",
     justifyContent: "center",
@@ -264,21 +301,16 @@ const styles = StyleSheet.create({
     height: 60,
     width: 80,
   },
+
   logoTitle: {
     fontFamily: "Quando_400Regular",
     color: "white",
     fontSize: 32
   },
 
-  buttonLogo: {
-    height: 20,
-    width: 20,
-    resizeMode: "cover",
-  },
-
-
-  loginBox: {
-    width: "90%",
+  formBox: {
+    width: "100%",
+    maxHeight: 640,
     padding: 24,
     backgroundColor: "white",
     display: "flex",
@@ -286,10 +318,24 @@ const styles = StyleSheet.create({
     gap: 16,
   },
 
-  loginTitle: {
+  formHeader: {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+
+  formTitle: {
     fontFamily: "Quando_400Regular",
     color: "black",
     fontSize: 24,
+  },
+
+  inputGroupContainer: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+    maxHeight: 300,
   },
 
   inputGroup: {
@@ -297,12 +343,19 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "column",
     gap: 2,
+    marginBottom: 4,
   },
 
   inputLabel: {
     fontFamily: "AtkinsonHyperlegible_400Regular",
     color: "black",
     fontSize: 16
+  },
+
+  errorMsg: {
+    fontFamily: "AtkinsonHyperlegible_400Regular",
+    color: "#FF4A4A",
+    fontSize: 12
   },
 
   input: {
@@ -315,6 +368,10 @@ const styles = StyleSheet.create({
     borderRadius: 2
   },
 
+  required: {
+    color: "#FF4A4A"
+  },
+
   submit: {
     width: "100%",
     paddingVertical: 8,
@@ -322,6 +379,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#80D4FF",
     borderWidth: 1,
     borderRadius: 2
+  },
+
+  buttonText: {
+    fontFamily: "AtkinsonHyperlegible_400Regular",
+    textAlign: "center",
+    color: "black",
+    fontSize: 16,
+    display: "flex",
+    flexDirection: "row",
+    gap: 12
   },
 
   socialButton: {
@@ -337,55 +404,19 @@ const styles = StyleSheet.create({
     borderRadius: 2
   },
 
-  buttonText: {
-    fontFamily: "AtkinsonHyperlegible_400Regular",
-    textAlign: "center",
-    color: "black",
-    fontSize: 16,
-    display: "flex",
-    flexDirection: "row",
-    gap: 12
+  buttonLogo: {
+    height: 20,
+    width: 20,
+    resizeMode: "cover",
   },
 
-  logoSubtitle: {
-    fontFamily: "AtkinsonHyperlegible_400Regular",
-    color: "white",
-    fontSize: 14
-  },
-  uploadButton: {
-    backgroundColor: "#007BFF",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-  },
-  // buttonText: {
-  //   color: "#FFFFFF",
-  //   fontWeight: "bold",
-  //   fontSize: 20,
-  // },
-  textContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1,
-    position: "absolute",
-    top: "45%",
-    left: "33%",
-    backgroundColor: "black",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  centerText: {
-    color: "#FFFFFF",
-    fontSize: 32, // Larger text
-    fontWeight: "bold",
-    textAlign: "center",
-  },
 
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+
+
+
+
+
+
+
+
 });

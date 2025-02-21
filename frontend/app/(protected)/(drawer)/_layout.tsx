@@ -9,6 +9,7 @@ import {
 import { View, StyleSheet } from "react-native";
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import { Auth } from "@/utilities/authContext";
+import { supabase } from "@/lib/supabase";
 
 export default function DrawerLayout() {
   return (
@@ -76,7 +77,8 @@ function SignOutBtn(props: DrawerContentComponentProps) {
         <DrawerItem
           label="Sign Out"
           onPress={() => {
-            Auth.signOut();
+            // Auth.signOut();
+            supabase.auth.signOut();
           }}
           icon={({ color, focused }) => (
             <TabBarIcon

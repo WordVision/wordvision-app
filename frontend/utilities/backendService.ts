@@ -1,5 +1,6 @@
 import { Alert } from "react-native";
 import { User } from "./authContext";
+import { Session } from "@supabase/supabase-js";
 
 const backendURL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
 
@@ -29,11 +30,13 @@ export interface Selection {
 }
 
 // This method will fetch all the books for the currently logged
-export async function getAllBooks(user: User) {
+// export async function getAllBooks(user: User) {
+export async function getAllBooks(session: Session) {
   const response = await fetch(backendURL + `/books`, {
     method: "GET",
     headers: {
-      Authorization: `Bearer ${user.accessToken}`,
+      // Authorization: `Bearer ${user.accessToken}`,
+      Authorization: `Bearer ${session.access_token}`,
     },
   });
 
@@ -278,7 +281,7 @@ export async function createUserHighlight(
     // return true;
     return await response.json();
   }
-  else 
+  else
     return null;
 }
 

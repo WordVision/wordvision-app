@@ -20,11 +20,16 @@ import Loading from "@/components/Loading";
 import { AuthContext, type User } from "@/utilities/authContext";
 import { BookContext } from "@/utilities/bookContext";
 import { getAllBooks, uploadBookToDB } from "@/utilities/backendService";
+import { useAuth } from "@/utilities/authProvider";
 
 const { width } = Dimensions.get("window");
 
 export default function LibraryScreen() {
   const user = useContext(AuthContext) as User;
+
+  const { session } = useAuth();
+  console.log(session)
+
   const { books, setBooks } = useContext(BookContext);
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -98,17 +103,24 @@ export default function LibraryScreen() {
     const fetchBooks = async () => {
       setLoading(true);
 
-      try {
-        const data = await getAllBooks(user);
-        setBooks(data);
-      } catch (error) {
-        console.error("Error fetching books:", error);
-        Alert.alert("Error", "An error occurred while fetching books.");
-      } finally {
-        setLoading(false);
+      if (session) {
+        try {
+          // const data = await getAllBooks(user);
+          const data = await getAllBooks(session);
+          setBooks(data);
+        }
+        catch (error) {
+          console.error("Error fetching books:", error);
+          Alert.alert("Error", "An error occurred while fetching books.");
+        } finally {
+          setLoading(false);
+        }
       }
+
     };
+
     fetchBooks();
+
   }, []);
 
   if (loading) {

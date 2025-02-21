@@ -10,3 +10,4 @@ python-multipart
 pymupdf
 gradio_client
 Pillow
+supabase

@@ -127,7 +127,8 @@ async def update_book_settings(request: Request, book_id: str, settings: BookSet
 # GET /books - Retrieve Books Metadata API
 @router.get("/books", tags=["book"])
 async def retrieve_books(request: Request):
-    owner_id = request.state.user["id"]
+    # owner_id = request.state.user["id"]
+    owner_id = request.state.user.id
 
     # Retrieve books from MongoDB based on the owner's hashed email
     collection = get_mongodb_collection(owner_id)

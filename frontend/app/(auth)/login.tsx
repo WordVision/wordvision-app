@@ -46,6 +46,10 @@ export default function LandingPage() {
     setLoading(false);
   }
 
+  async function signInWithGoogle() {
+    Alert.alert("will be available soon...")
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.logoContainer}>
@@ -87,7 +91,7 @@ export default function LandingPage() {
           <Text style={styles.buttonText}>Sign in</Text>
         </Pressable>
         <Text style={styles.buttonText}>- or -</Text>
-        <Pressable style={styles.socialButton}>
+        <Pressable style={styles.socialButton} onPress={() => signInWithGoogle()}>
           <Image
             source={require("@/assets/images/google.png")}
             style={styles.buttonLogo} />

@@ -85,6 +85,10 @@ export default function LandingPage() {
     setLoading(false)
   }
 
+  async function signUpWithGoogle() {
+    Alert.alert("will be available soon...")
+  }
+
   return (
     <View style={styles.container}>
 
@@ -262,7 +266,7 @@ export default function LandingPage() {
 
           <Text style={styles.buttonText}>- or -</Text>
 
-          <Pressable style={styles.socialButton}>
+          <Pressable style={styles.socialButton} onPress={() => signUpWithGoogle()}>
             <Image
               source={require("@/assets/images/google.png")}
               style={styles.buttonLogo} />
@@ -409,14 +413,5 @@ const styles = StyleSheet.create({
     width: 20,
     resizeMode: "cover",
   },
-
-
-
-
-
-
-
-
-
 
 });

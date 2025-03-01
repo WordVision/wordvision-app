@@ -128,7 +128,8 @@ async def update_book_settings(request: Request, book_id: str, settings: BookSet
 @router.get("/books", tags=["book"])
 async def retrieve_books(request: Request):
     # owner_id = request.state.user["id"]
-    owner_id = request.state.user.id
+    # owner_id = request.state.user.id
+    owner_id = "books"
 
     # Retrieve books from MongoDB based on the owner's hashed email
     collection = get_mongodb_collection(owner_id)
@@ -149,7 +150,8 @@ async def retrieve_books(request: Request):
 # GET /book/info/{id} this route gets book metadata from mongodb
 @router.get("/book/info/{book_id}", tags=["book"])
 async def get_book_info(request: Request, book_id: str):
-    owner_id = request.state.user["id"]
+    # owner_id = request.state.user["id"]
+    owner_id = "books"
 
     # Retrieve the book metadata from MongoDB based on user's hashed email and the UUID field
     collection = get_mongodb_collection(owner_id)
@@ -198,10 +200,11 @@ async def get_book_settings(request: Request, book_id: str):
 # GET book content from amazon S3 bucket  
 @router.get("/book/{book_id}", tags=["book"])
 async def get_book_presigned_url(request: Request, book_id: str):
-    owner_id = request.state.user["id"]
+    # owner_id = request.state.user["id"]
 
     # Define the S3 key for the book file
-    s3_key = f"{owner_id}/{book_id}/book.epub"
+    # s3_key = f"{owner_id}/{book_id}/book.epub"
+    s3_key = f"books/the_count_of_monte_cristo/book.epub"
 
     try:
         # Generate a pre-signed URL for the S3 object

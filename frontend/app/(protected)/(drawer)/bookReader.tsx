@@ -40,6 +40,9 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 
 
 import { RootStackParamList } from "@/app/(protected)/(drawer)/(tabs)/types"; // Adjust this path to match your project structure
+import { useAuth } from "@/utilities/authProvider";
+import { useReader, Reader } from "@epubjs-react-native/core";
+import { useFileSystem } from '@epubjs-react-native/expo-file-system';
 
 // Explicitly type navigation as a stack navigator
 type BookReaderScreenNavigationProp = StackNavigationProp<
@@ -49,6 +52,12 @@ type BookReaderScreenNavigationProp = StackNavigationProp<
 
 const BookReader: React.FC = () => {
   const user = useContext(AuthContext) as User;
+   
+
+  const { goToLocation } = useReader();
+
+  const { session } = useAuth();
+
   const { highlights, setHighlights } = useContext(HighlightContext);
 
   const ctxMenuRef = useRef<any>(null);
@@ -110,15 +119,20 @@ const BookReader: React.FC = () => {
 
     const fetchBook = async () => {
       try {
-        const response = await getBookByBookId(user, bookId);
-        setBookUrl(response);
-
-        const data = await getAllHighlightsByBookId(user, bookId);
-        setHighlights(data);
-
-        if (userHighlight && userHighlight.location) {
-          setLocation(userHighlight.location);
+        // const response = await getBookByBookId(user, bookId);
+        
+        if (session) {
+          const response = await getBookByBookId(session, bookId);
+          setBookUrl(response);
         }
+
+
+        // const data = await getAllHighlightsByBookId(user, bookId);
+        // setHighlights(data);
+
+        // if (userHighlight && userHighlight.location) {
+        //   setLocation(userHighlight.location);
+        // }
       } catch (error) {
         console.error("Error fetching book:", error);
         setError("Error fetching book.");
@@ -144,7 +158,7 @@ const BookReader: React.FC = () => {
     };
 
     fetchBook();
-    fetchSettings();
+    // fetchSettings();
   }, [bookId, user]);
 
   useEffect(() => {
@@ -605,7 +619,7 @@ const BookReader: React.FC = () => {
       </View>
 
 
-      {bookUrl ? (
+        {/*
         <ReactReader
           url={bookUrl}
           epubInitOptions={{ openAs: "epub" }}
@@ -623,6 +637,13 @@ const BookReader: React.FC = () => {
             });
             rendition.themes.select("custom");
           }}
+        />
+*/}
+
+      {bookUrl ? (
+        <Reader  
+          src={bookUrl}
+          fileSystem={useFileSystem}
         />
       ) : (
         <Text>Book URL is not available.</Text>

@@ -2,7 +2,8 @@ import { Alert, Platform } from "react-native";
 import { Session } from "@supabase/supabase-js";
 
 // const backendURL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
-const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://10.0.2.2:8000";
+// const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://10.0.2.2:8000";
+const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://192.168.2.59:8000";
 
 // Book interface
 export interface Book {

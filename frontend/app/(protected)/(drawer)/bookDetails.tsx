@@ -24,9 +24,14 @@ import {
   deleteUserSelectedBook,
   getBookMetaData,
 } from "@/utilities/backendService";
+import { useAuth } from "@/utilities/authProvider";
 
 export default function BookDetailsScreen() {
+
   const user = useContext(AuthContext) as User;
+  const { session } = useAuth();
+
+
   const { setBooks } = useContext(BookContext);
 
   const [book, setBook] = useState<Book | null>(null);
@@ -44,17 +49,27 @@ export default function BookDetailsScreen() {
   const { bookId } = route.params;
   const backendURL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
 
+
   useEffect(() => {
     const fetchBookDetails = async () => {
       try {
-        const user = await getUser();
-        if (!user) {
-          Alert.alert("Error", "No user found");
-          return;
+        // const user = await getUser();
+        // if (!user) {
+        //   Alert.alert("Error", "No user found");
+        //   return;
+        // }
+
+        // const data = await getBookMetaData(user, bookId);
+        if (session) {
+
+          const data = await getBookMetaData(session, bookId);
+          setBook(data);
+
+        }
+        else {
+          Alert.alert("Error", "An error occurred while fetching book details.");
         }
 
-        const data = await getBookMetaData(user, bookId);
-        setBook(data);
       } catch (error) {
         Alert.alert("Error", "An error occurred while fetching book details.");
       } finally {

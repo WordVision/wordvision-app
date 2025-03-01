@@ -71,6 +71,8 @@ export default function LandingPage() {
             <Text style={styles.inputLabel}>Email</Text>
             <TextInput
               style={styles.input}
+              inputMode="email"
+              autoCapitalize="none"
               onChangeText={setEmail}
               inputMode="email"
               autoCapitalize="none"
@@ -83,6 +85,7 @@ export default function LandingPage() {
               style={styles.input}
               onChangeText={setPassword}
               value={password}
+              autoCapitalize="none"
               secureTextEntry={true}
             />
           </View>

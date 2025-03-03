@@ -3,7 +3,8 @@ import { Session } from "@supabase/supabase-js";
 
 // const backendURL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
 // const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://10.0.2.2:8000";
-const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://192.168.2.59:8000";
+// const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://192.168.2.59:8000";
+const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://10.0.0.145:8000";
 
 // Book interface
 export interface Book {
@@ -264,8 +265,8 @@ export async function fetchUpdatedHighlight(
   }
 }
 
-// This method will create a new highlight for the session
-export async function createSessionHighlight(
+// This method will create a new highlight for the user
+export async function createUserHighlight(
   session: Session,
   bookId: string,
   selection: Selection
@@ -274,6 +275,41 @@ export async function createSessionHighlight(
     method: "POST",
     body: JSON.stringify(selection),
     headers: session.authorizationHeaders(),
+  });
+
+  if (response.status === 200) {
+    // return true;
+    return await response.json();
+  }
+  else
+    return null;
+}
+
+// This method will create a new highlight for the user
+export async function visualizeHighlight(
+  session: Session,
+  bookId: string,
+  selection: Selection
+) {
+
+  // const url = `http://localhost:8000/book/${bookId}/highlight?image=true`;
+
+  // const response = await fetch(backendURL + `/book/${bookId}/highlight?image=true`, {
+  // // const response = await fetch(url, {
+  //   method: "POST",
+  //   body: JSON.stringify(selection),
+  //   headers: user.authorizationHeaders(),
+  // });
+
+  console.log(JSON.stringify(selection));
+
+  const response = await fetch(backendURL + `/book/${bookId}/highlight?image=true`, {
+    method: "POST",
+    body: JSON.stringify(selection),
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      "Content-Type": "application/json"
+    }
   });
 
   if (response.status === 200) {

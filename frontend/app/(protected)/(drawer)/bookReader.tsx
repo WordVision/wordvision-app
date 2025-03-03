@@ -32,6 +32,7 @@ import {
   deleteHighlight,
   updateBookSettings,
   getBookSettings,
+  visualizeHighlight,
 } from "@/utilities/backendService";
 import Loading from "@/components/Loading";
 import { HighlightContext } from "@/utilities/highlightContext";
@@ -41,7 +42,7 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 
 import { RootStackParamList } from "@/app/(protected)/(drawer)/(tabs)/types"; // Adjust this path to match your project structure
 import { useAuth } from "@/utilities/authProvider";
-import { useReader, Reader } from "@epubjs-react-native/core";
+import { useReader, Reader, Annotation } from "@epubjs-react-native/core";
 import { useFileSystem } from '@epubjs-react-native/expo-file-system';
 
 // Explicitly type navigation as a stack navigator
@@ -52,11 +53,22 @@ type BookReaderScreenNavigationProp = StackNavigationProp<
 
 const BookReader: React.FC = () => {
   const user = useContext(AuthContext) as User;
-   
 
-  const { goToLocation } = useReader();
+
+  const {
+    theme,
+    annotations,
+    changeFontSize,
+    changeFontFamily,
+    changeTheme,
+    goToLocation,
+    addAnnotation,
+    removeAnnotation,
+  } = useReader();
 
   const { session } = useAuth();
+
+  const [ selectedAnnotation, setSelectedAnnotation ] = useState<Annotation | null>(null);
 
   const { highlights, setHighlights } = useContext(HighlightContext);
 
@@ -120,7 +132,7 @@ const BookReader: React.FC = () => {
     const fetchBook = async () => {
       try {
         // const response = await getBookByBookId(user, bookId);
-        
+
         if (session) {
           const response = await getBookByBookId(session, bookId);
           setBookUrl(response);
@@ -641,9 +653,53 @@ const BookReader: React.FC = () => {
 */}
 
       {bookUrl ? (
-        <Reader  
+        <Reader
           src={bookUrl}
           fileSystem={useFileSystem}
+          waitForLocationsReady
+          onSelected={(selection, cfiRange) => {
+            setSelection({text: selection, location: cfiRange});
+          }}
+          onPressAnnotation={(annotation) => {
+            setSelectedAnnotation(annotation);
+            setImageModalVisible(true);
+          }}
+          menuItems={[
+            {
+              label: 'Visualize',
+              action: (cfiRange) => {
+
+                setSaveMessage("Visualizing highlight...");
+                setModalVisible(true);
+
+                if (session && selection) {
+                  visualizeHighlight(session, bookId, selection).then(data => {
+                    if (data) {
+
+                      addAnnotation('highlight', cfiRange, {imgUrl: data.imgUrl}, {
+                        color: "#C20114",
+                      });
+
+                      const highlight = { ...selection, imgUrl: data.imgUrl, id: data.highlightId };
+
+                      setGeneratedImageUrl(data.imgUrl || null);
+                      setHighlights([...highlights, { ...selection, imgUrl: data.imgUrl, id: data.highlightId }]);
+                      setModalVisible(false);
+                      return true;
+                    }
+                    else {
+                      console.error("Failed to visualize highlight");
+                      setSaveError(true);
+                      return false;
+                    }
+                  });
+                }
+
+                return false;
+
+              }
+            },
+          ]}
         />
       ) : (
         <Text>Book URL is not available.</Text>
@@ -712,9 +768,19 @@ const BookReader: React.FC = () => {
         visible={imageModalVisible}
         onRequestClose={() => setImageModalVisible(false)}
       >
+      {/*
+            {selectedHighlight?.imgUrl ? (
+
+                <Image
+                  source={{ uri: selectedHighlight?.imgUrl }}
+                  style={{ width: 425, height: 425 }}
+                  resizeMode="contain"
+                />
+      */}
+
         <View style={styles.modalContainer}>
           <View style={styles.imageModalView}>
-            {selectedHighlight?.imgUrl ? (
+            {selectedAnnotation?.data?.imgUrl ? (
               <>
                 <View style={styles.imageHeader}>
                   <Text style={{ fontSize: 20 }}>Generated image:</Text>
@@ -741,7 +807,7 @@ const BookReader: React.FC = () => {
                   </TouchableOpacity>
                 </View>
                 <Image
-                  source={{ uri: selectedHighlight?.imgUrl }}
+                  source={{ uri: selectedAnnotation?.data?.imgUrl }}
                   style={{ width: 425, height: 425 }}
                   resizeMode="contain"
                 />

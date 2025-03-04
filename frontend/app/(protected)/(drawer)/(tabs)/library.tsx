@@ -21,11 +21,12 @@ import { AuthContext, type User } from "@/utilities/authContext";
 import { BookContext } from "@/utilities/bookContext";
 import { getAllBooks, uploadBookToDB } from "@/utilities/backendService";
 import { useAuth } from "@/utilities/authProvider";
+import { supabase } from "@/lib/supabase";
 
 const { width } = Dimensions.get("window");
 
 export default function LibraryScreen() {
-  const user = useContext(AuthContext) as User;
+  // const user = useContext(AuthContext) as User;
 
   const { session } = useAuth();
   console.log(session)
@@ -39,89 +40,111 @@ export default function LibraryScreen() {
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
-  const pickBookFile = async () => {
-    console.debug("Inside library.tsx pickBookFile()");
+  // const pickBookFile = async () => {
+  //   console.debug("Inside library.tsx pickBookFile()");
+  //
+  //   let result = await DocumentPicker.getDocumentAsync({
+  //     type: [".epub"],
+  //     copyToCacheDirectory: true,
+  //   });
+  //
+  //   if (result && result.output && result.output.length > 0) {
+  //     setSelectedFile(result.assets[0]);
+  //     console.debug("File selected: ", result.assets[0].name); // Log the file name
+  //   } else {
+  //     console.debug("File picking canceled or failed.");
+  //   }
+  // };
 
-    let result = await DocumentPicker.getDocumentAsync({
-      type: [".epub"],
-      copyToCacheDirectory: true,
-    });
+  // const uploadBook = async () => {
+  //   console.debug("inside library uploadBook()");
+  //   setUploadingBook(true);
+  //
+  //   if (selectedFile && selectedFile.name.endsWith(".epub")) {
+  //     const formData = new FormData();
+  //
+  //     // Convert the file URI to a Blob using fetch
+  //     const fileBlob = await fetch(selectedFile.uri)
+  //       .then((response) => response.blob())
+  //       .catch((error) => {
+  //         console.error("Error converting file to blob:", error);
+  //         return null;
+  //       });
+  //
+  //     if (!fileBlob) {
+  //       Alert.alert("Error", "Failed to process the selected file.");
+  //       return;
+  //     }
+  //
+  //     // Append the file Blob to FormData
+  //     formData.append("file", fileBlob, selectedFile.name);
+  //
+  //     //console log
+  //     for (let [key, value] of formData.entries()) {
+  //       console.debug(`${key}:`, value);
+  //     }
+  //
+  //     try {
+  //       const newBookData = await uploadBookToDB(user, formData);
+  //       setBooks([...books, newBookData]);
+  //     } catch (error) {
+  //       console.error("Error uploading book:", error);
+  //       Alert.alert("Error", "An error occurred during upload.");
+  //     } finally {
+  //       setModalVisible(false);
+  //       setUploadingBook(false);
+  //       setSelectedFile(null);
+  //     }
+  //   } else {
+  //     Alert.alert("Invalid file", "Please select a valid EPUB file.");
+  //   }
+  // };
 
-    if (result && result.output && result.output.length > 0) {
-      setSelectedFile(result.assets[0]);
-      console.debug("File selected: ", result.assets[0].name); // Log the file name
-    } else {
-      console.debug("File picking canceled or failed.");
-    }
-  };
-
-  const uploadBook = async () => {
-    console.debug("inside library uploadBook()");
-    setUploadingBook(true);
-
-    if (selectedFile && selectedFile.name.endsWith(".epub")) {
-      const formData = new FormData();
-
-      // Convert the file URI to a Blob using fetch
-      const fileBlob = await fetch(selectedFile.uri)
-        .then((response) => response.blob())
-        .catch((error) => {
-          console.error("Error converting file to blob:", error);
-          return null;
-        });
-
-      if (!fileBlob) {
-        Alert.alert("Error", "Failed to process the selected file.");
-        return;
-      }
-
-      // Append the file Blob to FormData
-      formData.append("file", fileBlob, selectedFile.name);
-
-      //console log
-      for (let [key, value] of formData.entries()) {
-        console.debug(`${key}:`, value);
-      }
-
-      try {
-        const newBookData = await uploadBookToDB(user, formData);
-        setBooks([...books, newBookData]);
-      } catch (error) {
-        console.error("Error uploading book:", error);
-        Alert.alert("Error", "An error occurred during upload.");
-      } finally {
-        setModalVisible(false);
-        setUploadingBook(false);
-        setSelectedFile(null);
-      }
-    } else {
-      Alert.alert("Invalid file", "Please select a valid EPUB file.");
-    }
-  };
+  // useEffect(() => {
+  //   const fetchBooks = async () => {
+  //     setLoading(true);
+  //
+  //     if (session) {
+  //       try {
+  //         // const data = await getAllBooks(user);
+  //         const data = await getAllBooks(session);
+  //         setBooks(data);
+  //       }
+  //       catch (error) {
+  //         console.error("Error fetching books:", error);
+  //         Alert.alert("Error", "An error occurred while fetching books.");
+  //       } finally {
+  //         setLoading(false);
+  //       }
+  //     }
+  //
+  //   };
+  //
+  //   fetchBooks();
+  // }, []);
 
   useEffect(() => {
     const fetchBooks = async () => {
       setLoading(true);
 
-      if (session) {
-        try {
-          // const data = await getAllBooks(user);
-          const data = await getAllBooks(session);
-          setBooks(data);
-        }
-        catch (error) {
-          console.error("Error fetching books:", error);
-          Alert.alert("Error", "An error occurred while fetching books.");
-        } finally {
-          setLoading(false);
-        }
+      const { data, error } = await supabase.from('books').select()
+
+      console.log({data});
+      console.log({error});
+       
+      if (data) {
+        setBooks(data);
+      }
+      else {
+        console.error("Error fetching books:", error);
+        Alert.alert("Error", "An error occurred while fetching books.");
       }
 
-    };
-
+      setLoading(false);
+    }
     fetchBooks();
-
   }, []);
+
 
   if (loading) {
     return (
@@ -134,6 +157,8 @@ export default function LibraryScreen() {
 
   return (
     <View style={styles.container}>
+
+    {/*
       <View style={styles.headerRight}>
         <TouchableOpacity
           onPress={() => setModalVisible(true)}
@@ -142,6 +167,7 @@ export default function LibraryScreen() {
           <Text style={styles.buttonText}>Upload a book</Text>
         </TouchableOpacity>
       </View>
+*/}
 
       {/* Book cards list */}
       {books.length <= 0 ? (
@@ -187,7 +213,7 @@ export default function LibraryScreen() {
         />
       )}
 
-      {/* Modal for file upload */}
+      {/* Modal for file upload
       <Modal
         animationType="slide"
         transparent={true}
@@ -204,7 +230,6 @@ export default function LibraryScreen() {
               <>
                 <Text style={styles.modalText}>Upload a Book (EPUB)</Text>
 
-                {/* Pick a Book File */}
                 <TouchableOpacity
                   style={[styles.button, styles.buttonPick]}
                   onPress={pickBookFile}
@@ -239,6 +264,7 @@ export default function LibraryScreen() {
           </View>
         </View>
       </Modal>
+*/}
     </View>
   );
 }

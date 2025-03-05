@@ -25,6 +25,7 @@ import {
   getBookMetaData,
 } from "@/utilities/backendService";
 import { useAuth } from "@/utilities/authProvider";
+import { supabase } from "@/lib/supabase";
 
 export default function BookDetailsScreen() {
 
@@ -52,51 +53,76 @@ export default function BookDetailsScreen() {
 
   useEffect(() => {
     const fetchBookDetails = async () => {
-      try {
-        // const user = await getUser();
-        // if (!user) {
-        //   Alert.alert("Error", "No user found");
-        //   return;
-        // }
 
-        // const data = await getBookMetaData(user, bookId);
-        if (session) {
+      setLoading(true);
 
-          const data = await getBookMetaData(session, bookId);
-          setBook(data);
+      console.log(bookId)
 
-        }
-        else {
-          Alert.alert("Error", "An error occurred while fetching book details.");
-        }
+      const { data, error } = await supabase
+        .from('books')
+        .select()
+        .eq('id', bookId)
+        .limit(1)
+        .single();
 
-      } catch (error) {
-        Alert.alert("Error", "An error occurred while fetching book details.");
-      } finally {
-        setLoading(false);
+      console.log({data});
+
+      if (data) {
+        setBook(data);
       }
+      else {
+        Alert.alert("Error", `An error occurred while fetching book details: ${error?.message}`);
+      }
+
+      setLoading(false);
+
+
+      
+      // try {
+      //   // const user = await getUser();
+      //   // if (!user) {
+      //   //   Alert.alert("Error", "No user found");
+      //   //   return;
+      //   // }
+      //
+      //   // const data = await getBookMetaData(user, bookId);
+      //   if (session) {
+      //
+      //     const data = await getBookMetaData(session, bookId);
+          // setBook(data);
+      //
+      //   }
+      //   else {
+      //     Alert.alert("Error", "An error occurred while fetching book details.");
+      //   }
+      //
+      // } catch (error) {
+      //   Alert.alert("Error", "An error occurred while fetching book details.");
+      // } finally {
+      //   setLoading(false);
+      // }
     };
 
-    const fetchStoredData = async () => {
-      try {
-        const storedNotes = await AsyncStorage.getItem(`notes_${bookId}`);
-        if (storedNotes) setNotes(storedNotes);
-
-        const storedStarred = await AsyncStorage.getItem(`isStarred_${bookId}`);
-        if (storedStarred) setIsStarred(JSON.parse(storedStarred));
-
-        const storedClocked = await AsyncStorage.getItem(`isClocked_${bookId}`);
-        if (storedClocked) setIsClocked(JSON.parse(storedClocked));
-
-        const storedChecked = await AsyncStorage.getItem(`isChecked_${bookId}`);
-        if (storedChecked) setIsChecked(JSON.parse(storedChecked));
-      } catch (error) {
-        console.error("Failed to load data from AsyncStorage:", error);
-      }
-    };
+    // const fetchStoredData = async () => {
+    //   try {
+    //     const storedNotes = await AsyncStorage.getItem(`notes_${bookId}`);
+    //     if (storedNotes) setNotes(storedNotes);
+    //
+    //     const storedStarred = await AsyncStorage.getItem(`isStarred_${bookId}`);
+    //     if (storedStarred) setIsStarred(JSON.parse(storedStarred));
+    //
+    //     const storedClocked = await AsyncStorage.getItem(`isClocked_${bookId}`);
+    //     if (storedClocked) setIsClocked(JSON.parse(storedClocked));
+    //
+    //     const storedChecked = await AsyncStorage.getItem(`isChecked_${bookId}`);
+    //     if (storedChecked) setIsChecked(JSON.parse(storedChecked));
+    //   } catch (error) {
+    //     console.error("Failed to load data from AsyncStorage:", error);
+    //   }
+    // };
 
     fetchBookDetails();
-    fetchStoredData();
+    // fetchStoredData();
   }, [bookId]);
 
   if (loading) {
@@ -196,6 +222,8 @@ export default function BookDetailsScreen() {
         </TouchableOpacity>
       </View>
 
+      {/*
+
       <Modal
         transparent={true}
         visible={modelVisible}
@@ -234,6 +262,8 @@ export default function BookDetailsScreen() {
         </View>
       </Modal>
 
+      */}
+
       <View style={styles.bookImageContainer}>
         <Image
           source={{ uri: book.imgUrl || "https://placehold.co/300x450" }}
@@ -247,6 +277,9 @@ export default function BookDetailsScreen() {
         <Text style={styles.bookAuthor}>by {book.author}</Text>
 
         <View style={styles.actionIcons}>
+
+          {/*
+
           <TouchableOpacity onPress={toggleStar}>
             <Icon
               name="star"
@@ -277,6 +310,9 @@ export default function BookDetailsScreen() {
               }}
             />
           </TouchableOpacity>
+          
+          */}
+
           <TouchableOpacity
             onPress={() => {
               navigation.navigate("highlights", { bookId: bookId });
@@ -292,6 +328,8 @@ export default function BookDetailsScreen() {
             />
           </TouchableOpacity>
 
+          {/*
+
           <TouchableOpacity onPress={handleDeleteAction}>
             <Icon
               name="trash"
@@ -299,14 +337,22 @@ export default function BookDetailsScreen() {
               style={{ color: "gray", marginHorizontal: 10 }}
             />
           </TouchableOpacity>
+
+          */}
         </View>
 
+        {/*
+        
         <Text style={styles.bookMeta}>Last time read: (Date and Time)</Text>
 
         <Text style={styles.bookMeta}>
           File Type: {book.type}, Size: {formatFileSize(book.size)}
         </Text>
+
+        */}
       </View>
+
+      {/*
 
       <View style={styles.notesSection}>
         <Text style={styles.notesHeader}>Notes:</Text>
@@ -318,6 +364,9 @@ export default function BookDetailsScreen() {
           onChangeText={handleNotesChange}
         />
       </View>
+
+      */}
+      
     </View>
   );
 }

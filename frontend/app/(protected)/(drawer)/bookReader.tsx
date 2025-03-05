@@ -44,6 +44,10 @@ import { RootStackParamList } from "@/app/(protected)/(drawer)/(tabs)/types"; //
 import { useAuth } from "@/utilities/authProvider";
 import { useReader, Reader, Annotation } from "@epubjs-react-native/core";
 import { useFileSystem } from '@epubjs-react-native/expo-file-system';
+import { supabase } from "@/lib/supabase";
+
+import { File, Paths, Directory } from 'expo-file-system/next';
+
 
 // Explicitly type navigation as a stack navigator
 type BookReaderScreenNavigationProp = StackNavigationProp<
@@ -130,27 +134,60 @@ const BookReader: React.FC = () => {
     }
 
     const fetchBook = async () => {
-      try {
-        // const response = await getBookByBookId(user, bookId);
+      setLoading(true);
 
-        if (session) {
-          const response = await getBookByBookId(session, bookId);
-          setBookUrl(response);
+      const database = await supabase
+        .from("books")
+        .select("id, filename")
+        .eq("id", bookId)
+        .limit(1)
+        .single()
+
+      console.log(database.data?.filename);
+
+      if (database.data) {
+
+        const storage = await supabase.storage.from("books").createSignedUrl(database.data.filename, 3600)
+        console.log(storage)
+
+        if (storage.data) {
+          const url = storage.data.signedUrl;
+          const destination = new Directory(Paths.cache, database.data.id);
+
+          try {
+            if (!destination.exists) {
+              destination.create();
+            }
+
+            const file = new File(Paths.cache, database.data.id, database.data.filename);
+
+            if (!file.exists) {
+              console.log("Downloading Book...")
+              const output = await File.downloadFileAsync(url, destination);
+              if (output.exists) console.log("Book downloaded!")
+            }
+            else {
+              console.log("Found downloaded book.")
+            }
+
+            console.log(file.uri);
+            setBookUrl(file.uri);
+          } 
+          catch (error) {
+            console.error(error);
+          }
         }
-
-
-        // const data = await getAllHighlightsByBookId(user, bookId);
-        // setHighlights(data);
-
-        // if (userHighlight && userHighlight.location) {
-        //   setLocation(userHighlight.location);
-        // }
-      } catch (error) {
-        console.error("Error fetching book:", error);
-        setError("Error fetching book.");
-      } finally {
-        setLoading(false);
+        else {
+          console.error("Error fetching book from storage:", storage.error);
+          setError("Error fetching book.");
+        }
       }
+      else {
+        console.error("Error fetching book data from database:", database.error);
+        setError("Error fetching book.");
+      }
+
+      setLoading(false);
     };
 
     const fetchSettings = async () => {
@@ -669,33 +706,44 @@ const BookReader: React.FC = () => {
               label: 'Visualize',
               action: (cfiRange) => {
 
-                setSaveMessage("Visualizing highlight...");
-                setModalVisible(true);
+                supabase.functions.invoke('hello-world', {
+                  body: { name: 'Functions' },
+                }).then(response => {
 
-                if (session && selection) {
-                  visualizeHighlight(session, bookId, selection).then(data => {
-                    if (data) {
+                  console.log(response)
 
-                      addAnnotation('highlight', cfiRange, {imgUrl: data.imgUrl}, {
-                        color: "#C20114",
-                      });
+                });
 
-                      const highlight = { ...selection, imgUrl: data.imgUrl, id: data.highlightId };
+                return true;
 
-                      setGeneratedImageUrl(data.imgUrl || null);
-                      setHighlights([...highlights, { ...selection, imgUrl: data.imgUrl, id: data.highlightId }]);
-                      setModalVisible(false);
-                      return true;
-                    }
-                    else {
-                      console.error("Failed to visualize highlight");
-                      setSaveError(true);
-                      return false;
-                    }
-                  });
-                }
 
-                return false;
+                // setSaveMessage("Visualizing highlight...");
+                // setModalVisible(true);
+                //
+                // if (session && selection) {
+                //   visualizeHighlight(session, bookId, selection).then(data => {
+                //     if (data) {
+                //
+                //       addAnnotation('highlight', cfiRange, {imgUrl: data.imgUrl}, {
+                //         color: "#C20114",
+                //       });
+                //
+                //       const highlight = { ...selection, imgUrl: data.imgUrl, id: data.highlightId };
+                //
+                //       setGeneratedImageUrl(data.imgUrl || null);
+                //       setHighlights([...highlights, { ...selection, imgUrl: data.imgUrl, id: data.highlightId }]);
+                //       setModalVisible(false);
+                //       return true;
+                //     }
+                //     else {
+                //       console.error("Failed to visualize highlight");
+                //       setSaveError(true);
+                //       return false;
+                //     }
+                //   });
+                // }
+                //
+                // return false;
 
               }
             },

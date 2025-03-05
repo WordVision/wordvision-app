@@ -19,7 +19,7 @@ import { RootStackParamList } from "./types"; // Import your defined types
 import Loading from "@/components/Loading";
 import { AuthContext, type User } from "@/utilities/authContext";
 import { BookContext } from "@/utilities/bookContext";
-import { getAllBooks, uploadBookToDB } from "@/utilities/backendService";
+import { getAllBooks, uploadBookToDB, Book } from "@/utilities/backendService";
 import { useAuth } from "@/utilities/authProvider";
 import { supabase } from "@/lib/supabase";
 
@@ -127,13 +127,25 @@ export default function LibraryScreen() {
     const fetchBooks = async () => {
       setLoading(true);
 
-      const { data, error } = await supabase.from('books').select()
+      const { data, error } = await supabase
+        .from('books')
+        .select(`
+          id, title, author,
+          user_books()
+        `)
+        .eq('user_books.user_id', session?.user.id);
 
       console.log({data});
       console.log({error});
+      // console.log(data?.at(0).books);
        
       if (data) {
-        setBooks(data);
+        const books: Book[] = data.map(book => {
+          delete book.user_books;
+          return book;
+        })
+
+        setBooks(books);
       }
       else {
         console.error("Error fetching books:", error);

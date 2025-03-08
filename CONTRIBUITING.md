@@ -2,7 +2,7 @@
 
 This guide will assist you in setting up the project for development.
 
-> Note: Major changes have been made    
+> Note: Major changes have been made  
 > The `backend/` folder is no longer relvant as we are now relying on supabase - an open source backend-as-a-service.  
 > This guide will help you get started with running the frontend as well as working through the supabase backend.
 
@@ -79,16 +79,26 @@ npm start
 ### Running on Android
 
 #### Prerequisites
+
 - android emulator or connected local android device
 
-To run on android, press `a`  
+To run on android, press `a`
 
 > Note:
 > I recommend using the development build for better compatibility. You can do so by pressing `s` to switch away from Expo Go.
 
 ### Running on IOS
 
-> Needs more work
+- iOS emulator
+
+To run on android, press `i`
+
+> Note:
+> I recommend using the **Expo Go**. Otherwise, you might find the following error:
+
+```
+CommandError: No development build (com.wordvision.WordVision) for this project is installed. Please make and install a development build on the device first.
+```
 
 ### Running on Web
 

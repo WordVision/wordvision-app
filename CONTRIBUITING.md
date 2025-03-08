@@ -1,6 +1,10 @@
 # Contributing to WordVision
 
-This guide will assist you in setting up the project for development using Docker.
+This guide will assist you in setting up the project for development.
+
+> Note: Major changes have been made    
+> The `backend/` folder is no longer relvant as we are now relying on supabase - an open source backend-as-a-service.  
+> This guide will help you get started with running the frontend as well as working through the supabase backend.
 
 ## Table of Contents
 
@@ -8,10 +12,14 @@ This guide will assist you in setting up the project for development using Docke
 - [Technology Stack](#technology-stack)
   - [Core Frameworks & Libraries](#core-frameworks--libraries)
   - [Key Integrations](#key-integrations)
-  - [Cloud & Database](#cloud--database)
 - [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Running the Project](#running-the-project)
+  - [Clone the Project](#clone-the-project)
+  - [Setup Environment Variables](#setup-environment-variables)
+  - [Install Dependencies](#install-dependencies)
+- [Running the Project](#running-the-project)
+  - [Running on Android](#running-on-android)
+  - [Running on IOS](#running-on-ios)
+  - [Running on Web](#running-on-web)
 
 ## Overview
 
@@ -21,39 +29,67 @@ A new way of reading books. Combining ePub books with AI-powered image generatio
 
 ### Core Frameworks & Libraries
 
-- [**Backend**](https://github.com/HTSagara/PRJ-566-ZAA-Team-1/tree/main/backend): [FastAPI](https://fastapi.tiangolo.com/) – A high-performance Python web framework for building APIs.
-- [**Frontend**](https://github.com/HTSagara/PRJ-566-ZAA-Team-1/tree/main/frontend): [Expo React Native](https://expo.dev/) – A cross-platform framework for mobile development.
+- [**Frontend**](https://github.com/WordVision/wordvision-app/tree/main/frontend): [Expo React Native](https://expo.dev/) – A cross-platform framework for mobile development.
+- **Backend**: [Supabase](https://supabase.com/) – An open-source Firebase alternative
 
 ### Key Integrations
 
-- **Hugging Face Spaces**: Utilized for AI-driven image generation, ensuring efficient and high-quality visuals.
-- **Docker**: Containerizes the app, enabling smooth local testing and deployment.
-
-### Cloud & Database
-
-- **AWS Cognito**: Manages user authentication securely.
-- **AWS S3**: Used for storing generated images and ePub files.
-- **MongoDB**: Stores metadata for books, annotations, and user-generated content.
+- **Hugging Face Inference**: Utilized for AI-driven image generation, ensuring efficient and high-quality visuals.
 
 ## Getting Started
 
-### Prerequisites
-
-Ensure [Docker](https://docs.docker.com/get-started/get-docker/) is installed and running on your machine.
-
-### Running the Project
-
-**First-Time Setup**  
-Build and run the Docker containers:
+### Clone the project
 
 ```bash
-docker compose up --build
+git clone https://github.com/WordVision/wordvision-app.git wordvision
 ```
 
-or if you have already built the images and have no changes, you could omit `--build`:
+### Setup environment variables
+
+```text
+# wordvision/frontend/.env
+
+# Supabase database url
+EXPO_PUBLIC_SUPABASE_URL=<ask for supabase url>
+
+# Supabase public anon key
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<ask for anon key>
+```
+
+### Install dependencies
+
+Run npm install inside `/frontend`
 
 ```bash
-docker compose up
+npm install
 ```
 
-After running `docker compose up --build` the web app should be accessible in the browser on `http://localhost:8081/`
+Then run expo install to ensure expo packages installed are compatible with current expo version
+
+```bash
+npx expo install
+```
+
+## Running the project
+
+```bash
+npm start
+```
+
+### Running on Android
+
+#### Prerequisites
+- android emulator or connected local android device
+
+To run on android, press `a`  
+
+> Note:
+> I recommend using the development build for better compatibility. You can do so by pressing `s` to switch away from Expo Go.
+
+### Running on IOS
+
+> Needs more work
+
+### Running on Web
+
+> Needs more work

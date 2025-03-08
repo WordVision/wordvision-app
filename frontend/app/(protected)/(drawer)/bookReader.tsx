@@ -704,47 +704,52 @@ const BookReader: React.FC = () => {
           menuItems={[
             {
               label: 'Visualize',
-              action: (cfiRange) => {
+              action: (cfiRange, text) => {
 
-                supabase.functions.invoke('hello-world', {
-                  body: { name: 'Functions' },
-                }).then(response => {
+                setSaveMessage("Visualizing highlight...");
+                setModalVisible(true);
 
-                  console.log(response)
+                supabase.functions.invoke('highlight', {
+                  body: { 
+                    book_id: bookId,
+                    text: text,
+                    location: cfiRange,
+                    visualize: true
+
+                  },
+                }).then(({data, error}) => {
+
+                  console.log({data})
+
+                    if (data) {
+
+                      addAnnotation(
+                        'highlight', 
+                        cfiRange, 
+                        {
+                          imgUrl: data.imgUrl
+                        }, 
+                        {
+                          color: "#C20114",
+                        }
+                      );
+
+                      // const highlight = { ...selection, imgUrl: data.imgUrl, id: data.highlightId };
+
+                      // setGeneratedImageUrl(data.imgUrl || null);
+                      // setHighlights([...highlights, { ...selection, imgUrl: data.imgUrl, id: data.highlightId }]);
+                      setModalVisible(false);
+                      return true;
+                    }
+                    else {
+                      console.error("Failed to visualize highlight");
+                      setSaveError(true);
+                      return false;
+                    }
 
                 });
 
                 return true;
-
-
-                // setSaveMessage("Visualizing highlight...");
-                // setModalVisible(true);
-                //
-                // if (session && selection) {
-                //   visualizeHighlight(session, bookId, selection).then(data => {
-                //     if (data) {
-                //
-                //       addAnnotation('highlight', cfiRange, {imgUrl: data.imgUrl}, {
-                //         color: "#C20114",
-                //       });
-                //
-                //       const highlight = { ...selection, imgUrl: data.imgUrl, id: data.highlightId };
-                //
-                //       setGeneratedImageUrl(data.imgUrl || null);
-                //       setHighlights([...highlights, { ...selection, imgUrl: data.imgUrl, id: data.highlightId }]);
-                //       setModalVisible(false);
-                //       return true;
-                //     }
-                //     else {
-                //       console.error("Failed to visualize highlight");
-                //       setSaveError(true);
-                //       return false;
-                //     }
-                //   });
-                // }
-                //
-                // return false;
-
               }
             },
           ]}

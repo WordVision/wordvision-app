@@ -20,6 +20,7 @@ This guide will assist you in setting up the project for development.
   - [Running on Android](#running-on-android)
   - [Running on IOS](#running-on-ios)
   - [Running on Web](#running-on-web)
+- [Add a book to the library](#add-a-book-to-the-library)
 
 ## Overview
 
@@ -103,3 +104,16 @@ CommandError: No development build (com.wordvision.WordVision) for this project 
 ### Running on Web
 
 > Needs more work
+
+## Add a book to the library
+
+1. Rename the epub file to the book title (words separated by underscores instead of spaces)
+   - ex. Infinite Jest -> infinite_jest.epub
+2. Upload the epub to the [books](https://supabase.com/dashboard/project/szlxwnautzzqyrsnlenr/storage/buckets/books) bucket in supabase
+   - Optional:
+     1. Extract the cover image from the epub and rename it to the book's title just like you did with the epub
+        - ex. Infinite Jest -> infinite_jest.[jpg|png]
+     2. Upload the cover image to the public [images](https://supabase.com/dashboard/project/szlxwnautzzqyrsnlenr/storage/buckets/images) bucket under the book_covers folder
+     3. Save the public url of the image for later
+3. Add a new record for the book in the `books` table in our supabase [database](https://supabase.com/dashboard/project/szlxwnautzzqyrsnlenr/editor/45888?schema=public)
+4. Add new records in the `user_books` table to give the users of your choice access to the book.

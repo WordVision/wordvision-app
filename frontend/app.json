@@ -1,5 +1,6 @@
 {
   "expo": {
+    "owner": "wordvision",
     "name": "WordVision",
     "slug": "WordVision",
     "version": "1.0.0",
@@ -43,6 +44,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "4fb9cd11-8bc3-4f75-b998-c20b7a802659"
+      }
     }
   }
 }

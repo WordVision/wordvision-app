@@ -37,25 +37,25 @@ import {
 import Loading from "@/components/Loading";
 import { HighlightContext } from "@/utilities/highlightContext";
 
-import type { StackNavigationProp } from "@react-navigation/stack";
+// import type { StackNavigationProp } from "@react-navigation/stack";
+// import { RootStackParamList } from "@/app/(protected)/(home)/(tabs)/types.ts.bk"; // Adjust this path to match your project structure
 
-
-import { RootStackParamList } from "@/app/(protected)/(drawer)/(tabs)/types"; // Adjust this path to match your project structure
 import { useAuth } from "@/utilities/authProvider";
 import { useReader, Reader, Annotation } from "@epubjs-react-native/core";
 import { useFileSystem } from '@epubjs-react-native/expo-file-system';
 import { supabase } from "@/lib/supabase";
 
 import { File, Paths, Directory } from 'expo-file-system/next';
+import { useLocalSearchParams } from "expo-router";
 
 
 // Explicitly type navigation as a stack navigator
-type BookReaderScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  "bookReader"
->;
+// type BookReaderScreenNavigationProp = StackNavigationProp<
+//   RootStackParamList,
+//   "bookReader"
+// >;
 
-const BookReader: React.FC = () => {
+export default function BookReaderPage() {
   const user = useContext(AuthContext) as User;
 
 
@@ -78,12 +78,15 @@ const BookReader: React.FC = () => {
 
   const ctxMenuRef = useRef<any>(null);
 
-  const route = useRoute();
-  const { bookId, userHighlight } = route.params as {
-    bookId: string;
-    userHighlight: Highlight;
-  };
-  const navigation = useNavigation<BookReaderScreenNavigationProp>(); // nav
+  // const route = useRoute();
+  //
+  // const { bookId, userHighlight } = route.params as {
+  //   bookId: string;
+  //   userHighlight: Highlight;
+  // };
+
+
+  // const navigation = useNavigation<BookReaderScreenNavigationProp>(); // nav
 
   const [location, setLocation] = useState<string | number>(0);
   const [bookUrl, setBookUrl] = useState<string | null>(null);
@@ -118,10 +121,15 @@ const BookReader: React.FC = () => {
   const imageURL = selectedHighlight?.imgUrl;
   const highlightId = imageURL?.split("/").pop()?.replace(".png", "");
 
-  // const navigation = useNavigation();
+  const { bookId } = useLocalSearchParams<{ bookId: string }>();
+  const navigation = useNavigation();
 
+  // Navigation options as a stack child
   useEffect(() => {
-    navigation.setOptions({ headerShown: false });
+    navigation.setOptions({
+      title: "Reader",
+      headerShown: true,
+    });
   }, [navigation]);
 
 
@@ -633,17 +641,12 @@ const BookReader: React.FC = () => {
     }
   };
 
-  const handleBack = () => {
-    navigation.navigate("bookDetails", { bookId });
-  };
+  // const handleBack = () => {
+  //   navigation.navigate("bookDetails", { bookId });
+  // };
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#007BFF" />
-        <Text>Loading book...</Text>
-      </View>
-    );
+    return <Loading message="Loading book..."/>
   }
 
   if (error) {
@@ -659,13 +662,22 @@ const BookReader: React.FC = () => {
   return (
     <View style={{ flex: 1 }}>
 
-      {/* Header with Back Button */}
+      {/* Header with Back Button
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Icon name="arrow-left" size={20} color="black" />
-        </TouchableOpacity>
+        </TouchableOpacity>          {
+            cfiRange: 'epubcfi(/6/10!/4/2/4,/1:0,/1:319)',
+            data: {},
+            sectionIndex: 4,
+            styles: { color: '#23CE6B' },
+            cfiRangeText:
+              'The pale Usher—threadbare in coat, heart, body, and brain; I see him now. He was ever dusting his old lexicons and grammars, with a queer handkerchief, mockingly embellished with all the gay flags of all the known nations of the world. He loved to dust his old grammars; it somehow mildly reminded him of his mortality.',
+            type: 'highlight',
+          },
         <Text style={styles.headerTitle}>Back</Text>
       </View>
+*/}
 
 
         {/*
@@ -710,12 +722,11 @@ const BookReader: React.FC = () => {
                 setModalVisible(true);
 
                 supabase.functions.invoke('highlight', {
-                  body: { 
+                  body: {
                     book_id: bookId,
                     text: text,
                     location: cfiRange,
-                    visualize: true
-
+                    visualize: true,
                   },
                 }).then(({data, error}) => {
 
@@ -758,12 +769,14 @@ const BookReader: React.FC = () => {
         <Text>Book URL is not available.</Text>
       )}
 
+      {/*
       <TouchableOpacity
         style={styles.settingsButton}
         onPress={() => setSettingsModalVisible(true)}
       >
         <Icon name="cog" size={24} color="white" />
       </TouchableOpacity>
+*/}
 
       {contextMenu.visible && (
         <View
@@ -1117,4 +1130,3 @@ const styles = StyleSheet.create({
 
 });
 
-export default BookReader;

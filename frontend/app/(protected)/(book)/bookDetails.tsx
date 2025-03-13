@@ -14,9 +14,7 @@ import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { AuthContext, User, getUser } from "@/utilities/authContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/FontAwesome";
-import { StackNavigationProp } from "@react-navigation/stack";
-import { RootStackParamList } from "./types";
-import { router } from "expo-router";
+import { Link, router, useLocalSearchParams, useRouter } from "expo-router";
 import { BookContext } from "@/utilities/bookContext";
 import { Book } from "@/utilities/backendService";
 import Loading from "@/components/Loading";
@@ -27,11 +25,10 @@ import {
 import { useAuth } from "@/utilities/authProvider";
 import { supabase } from "@/lib/supabase";
 
-export default function BookDetailsScreen() {
+export default function BookDetailsPage() {
 
   const user = useContext(AuthContext) as User;
   const { session } = useAuth();
-
 
   const { setBooks } = useContext(BookContext);
 
@@ -45,15 +42,31 @@ export default function BookDetailsScreen() {
   const [deletingBook, setDeletingBook] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
 
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const route = useRoute<RouteProp<RootStackParamList, "bookReader">>();
-  const { bookId } = route.params;
-  const backendURL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
+  const { bookId } = useLocalSearchParams<{ bookId: string }>();
+  const navigation = useNavigation();
+  const router = useRouter();
+
+  // Navigation options as a stack child
+  useEffect(() => {
+    navigation.setOptions({
+      headerShown: true,
+      title: "Book Details",
+      headerRight: () => (
+        <Link href={{
+          pathname: "/(protected)/(book)/bookReader",
+          params: { bookId }
+        }} asChild>
+          <TouchableOpacity>
+            <Text style={styles.readButton}>Read</Text>
+          </TouchableOpacity>
+        </Link>
+      ),
+    });
+  }, [navigation]);
 
 
   useEffect(() => {
     const fetchBookDetails = async () => {
-
       setLoading(true);
 
       console.log(bookId)
@@ -75,32 +88,6 @@ export default function BookDetailsScreen() {
       }
 
       setLoading(false);
-
-
-      
-      // try {
-      //   // const user = await getUser();
-      //   // if (!user) {
-      //   //   Alert.alert("Error", "No user found");
-      //   //   return;
-      //   // }
-      //
-      //   // const data = await getBookMetaData(user, bookId);
-      //   if (session) {
-      //
-      //     const data = await getBookMetaData(session, bookId);
-          // setBook(data);
-      //
-      //   }
-      //   else {
-      //     Alert.alert("Error", "An error occurred while fetching book details.");
-      //   }
-      //
-      // } catch (error) {
-      //   Alert.alert("Error", "An error occurred while fetching book details.");
-      // } finally {
-      //   setLoading(false);
-      // }
     };
 
     // const fetchStoredData = async () => {
@@ -126,7 +113,7 @@ export default function BookDetailsScreen() {
   }, [bookId]);
 
   if (loading) {
-    return <Text>Loading...</Text>;
+    return <Loading message="Loading book details..."/>;
   }
 
   if (!book) {
@@ -206,6 +193,9 @@ export default function BookDetailsScreen() {
 
   return (
     <View style={styles.container}>
+
+    {/*
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="chevron-left" size={24} color="#000" />
@@ -221,6 +211,7 @@ export default function BookDetailsScreen() {
           <Text style={styles.readButton}>Read</Text>
         </TouchableOpacity>
       </View>
+*/}
 
       {/*
 
@@ -266,7 +257,7 @@ export default function BookDetailsScreen() {
 
       <View style={styles.bookImageContainer}>
         <Image
-          source={{ uri: book.imgUrl || "https://placehold.co/300x450" }}
+          source={{ uri: book.img_url || "https://placehold.co/300x450" }}
           style={styles.bookImage}
         />
       </View>
@@ -310,7 +301,7 @@ export default function BookDetailsScreen() {
               }}
             />
           </TouchableOpacity>
-          
+
           */}
 
           <TouchableOpacity
@@ -342,7 +333,7 @@ export default function BookDetailsScreen() {
         </View>
 
         {/*
-        
+
         <Text style={styles.bookMeta}>Last time read: (Date and Time)</Text>
 
         <Text style={styles.bookMeta}>
@@ -366,7 +357,7 @@ export default function BookDetailsScreen() {
       </View>
 
       */}
-      
+
     </View>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Redirect, Slot, useNavigation } from "expo-router";
+import { Redirect, Slot, Stack, useNavigation } from "expo-router";
+import { Drawer } from "expo-router/drawer";
 import { BookContext } from "@/utilities/bookContext";
 import { type Book } from "@/utilities/backendService";
 import { type Highlight } from "@/utilities/backendService";
@@ -21,14 +22,14 @@ export default function DrawerLayout() {
   const { session } = useAuth();
 
   if (!session) {
-    return <Redirect href="/login" />;
+    return <Redirect href="/(auth)/signin" />;
   }
 
   else {
     return (
       <BookContext.Provider value={bookContext}>
         <HighlightContext.Provider value={highlightContext}>
-          <Slot />
+          <Stack />
         </HighlightContext.Provider>
       </BookContext.Provider>
     );

@@ -20,10 +20,9 @@ import { Controller, useForm } from "react-hook-form";
 
 import {z} from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import AntDesign from '@expo/vector-icons/AntDesign';
 
-
-
-export default function LandingPage() {
+export default function SignUpPage() {
 
   const schema = z.object({
     firstName: z.string().optional(),
@@ -55,7 +54,6 @@ export default function LandingPage() {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
-
   const { control, handleSubmit } = useForm<FormFields>({
     defaultValues: {
       birthdate: new Date(),
@@ -70,7 +68,7 @@ export default function LandingPage() {
       email: formData.email,
       password: formData.password,
       options: {
-        emailRedirectTo: redirectTo + "/login",
+        emailRedirectTo: redirectTo + "/signin",
         data: {
           first_name: formData.firstName,
           last_name: formData.lastName,
@@ -86,7 +84,7 @@ export default function LandingPage() {
   }
 
   async function signUpWithGoogle() {
-    Alert.alert("will be available soon...")
+    Alert.alert("In development...")
   }
 
   return (
@@ -101,10 +99,13 @@ export default function LandingPage() {
       </View>
 
 
+
+      {/*
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ width: "100%"}}
       >
+*/}
         <View style={styles.formBox} >
 
           <View style={styles.formHeader}>
@@ -155,7 +156,9 @@ export default function LandingPage() {
             <Controller
               control={control}
               render={({field: {onChange, onBlur, value}, fieldState: { error } }) => (
-                <View style={styles.inputGroup}>
+                <View
+                  style={styles.inputGroup}
+                >
                   <Text style={styles.inputLabel}>
                     Email<Text style={styles.required}>*</Text>
                   </Text>
@@ -184,19 +187,31 @@ export default function LandingPage() {
                 control={control}
                 render={({field: {onChange, value}}) => (
                   <>
-                  <Pressable
+
+                  <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={styles.inputGroup}
-                    onPress={() => { setShowDatePicker(true)}}
+                    enabled={false}
                   >
                     <Text style={styles.inputLabel}>
                       Birthdate<Text style={styles.required}>*</Text>
                     </Text>
+
+                    <Pressable
+                      style={styles.calendarButton}
+                      onPress={() => { setShowDatePicker(true)}}
+                    >
+                      <AntDesign name="calendar" size={24} color="black" />
+                    </Pressable>
+
                     <TextInput
                       style={styles.input}
-                      editable={false}
+                      placeholder="dd/mm/yyyy"
+                      onChange={onChange}
                       value={value ? value.toLocaleDateString() : ""}
                     />
-                  </Pressable>
+                  </KeyboardAvoidingView>
+
 
                   {showDatePicker &&
                     <DateTimePicker
@@ -274,7 +289,9 @@ export default function LandingPage() {
           </Pressable>
         </View>
 
+        {/*
       </KeyboardAvoidingView>
+*/}
 
     </View>
   );
@@ -344,6 +361,7 @@ const styles = StyleSheet.create({
 
   inputGroup: {
     width: "100%",
+    position: "relative",
     display: "flex",
     flexDirection: "column",
     gap: 2,
@@ -354,6 +372,19 @@ const styles = StyleSheet.create({
     fontFamily: "AtkinsonHyperlegible_400Regular",
     color: "black",
     fontSize: 16
+  },
+
+  calendarButton: {
+    position: "absolute",
+    height: 46,
+    width: 46,
+    right: 0,
+    top: 20,
+    padding: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+    borderLeftWidth: 1,
   },
 
   errorMsg: {

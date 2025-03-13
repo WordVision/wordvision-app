@@ -11,7 +11,7 @@ export interface Book {
   id: string;
   title: string;
   author: string;
-  imgUrl?: string;
+  img_url?: string;
   type?: string;
   size?: number;
 }

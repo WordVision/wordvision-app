@@ -130,7 +130,7 @@ export default function LibraryScreen() {
       const { data, error } = await supabase
         .from('books')
         .select(`
-          id, title, author,
+          id, title, author, img_url,
           user_books()
         `)
         .eq('user_books.user_id', session?.user.id);
@@ -205,23 +205,27 @@ export default function LibraryScreen() {
               style={styles.cardContainer}
             >
               <View style={styles.card}>
-                <Image
-                  source={{
-                    uri: item.imgUrl || "https://placehold.co/100x150",
-                  }}
-                  style={styles.bookImage}
-                  resizeMode="contain"
-                />
-                <View style={styles.cardContent}>
-                  <Text style={styles.bookTitle}>{item.title}</Text>
-                  <Text style={styles.bookAuthor}>{item.author}</Text>
-                </View>
+                {item.img_url ? 
+
+                  <Image
+                    source={{
+                      uri: item.img_url || "https://placehold.co/100x150",
+                    }}
+                    style={styles.bookImage}
+                    resizeMode="contain"
+                  /> 
+                  : 
+                  <View style={styles.cardContent}>
+                    <Text style={styles.bookTitle}>{item.title}</Text>
+                    <Text style={styles.bookAuthor}>{item.author}</Text>
+                  </View>
+                }
               </View>
             </TouchableOpacity>
           )}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.cardList}
-          numColumns={5}
+          numColumns={2}
         />
       )}
 
@@ -289,8 +293,8 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingTop: 50,
-    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingHorizontal: 16,
   },
   headerRight: {
     position: "absolute",
@@ -309,13 +313,18 @@ const styles = StyleSheet.create({
   cardContainer: {
     flex: 1,
     margin: 5,
-    maxWidth: width / 5 - 10,
+    // backgroundColor: "red",
+    maxWidth: "50%",
   },
   card: {
+    padding: 16,
     backgroundColor: "#FFF",
     borderRadius: 8,
-    flexDirection: "column",
+    display: "flex",
+    // flexDirection: "column",
+    justifyContent: "center",
     alignItems: "center",
+    width: 150,
     aspectRatio: 0.65,
     shadowColor: "#000",
     shadowOffset: {
@@ -328,16 +337,16 @@ const styles = StyleSheet.create({
   },
   bookImage: {
     width: "100%",
-    height: "70%",
+    height: "100%",
     resizeMode: "contain",
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
+    // borderRadius: 8,
+    // borderTopRightRadius: 8,
   },
   cardContent: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 5,
+    // padding: 5,
   },
   bookTitle: {
     fontWeight: "bold",
@@ -350,9 +359,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   cardList: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    justifyContent: "space-between",
+    // paddingHorizontal: 16,
+    // paddingBottom: 16,
+    justifyContent: "space-around",
   },
   modalContainer: {
     flex: 1,

@@ -61,7 +61,6 @@ export default function BookReaderPage() {
 
   const {
     theme,
-    annotations,
     changeFontSize,
     changeFontFamily,
     changeTheme,
@@ -73,6 +72,7 @@ export default function BookReaderPage() {
   const { session } = useAuth();
 
   const [ selectedAnnotation, setSelectedAnnotation ] = useState<Annotation | null>(null);
+  const [ annotations, setAnnotations ] = useState<Annotation[]>([]);
 
   const { highlights, setHighlights } = useContext(HighlightContext);
 
@@ -146,12 +146,19 @@ export default function BookReaderPage() {
 
       const database = await supabase
         .from("books")
-        .select("id, filename")
+        .select(`
+          id, filename,
+          highlights(
+            text,
+            location,
+            img_url
+          )
+        `)
         .eq("id", bookId)
         .limit(1)
         .single()
 
-      console.log(database.data?.filename);
+      console.log(database.data);
 
       if (database.data) {
 
@@ -180,7 +187,7 @@ export default function BookReaderPage() {
 
             console.log(file.uri);
             setBookUrl(file.uri);
-          } 
+          }
           catch (error) {
             console.error(error);
           }
@@ -189,6 +196,21 @@ export default function BookReaderPage() {
           console.error("Error fetching book from storage:", storage.error);
           setError("Error fetching book.");
         }
+
+        if (database.data.highlights.length > 0) {
+          setAnnotations(database.data.highlights.map(annotation => {
+            return {
+              cfiRange: annotation.location,
+              data: {
+                img_url: annotation.img_url
+              },
+              styles: { color: '#C20114' },
+              cfiRangeText: annotation.text,
+              type: 'highlight',
+            } as Annotation
+          }))
+        }
+
       }
       else {
         console.error("Error fetching book data from database:", database.error);
@@ -713,6 +735,7 @@ export default function BookReaderPage() {
             setSelectedAnnotation(annotation);
             setImageModalVisible(true);
           }}
+          initialAnnotations={annotations}
           menuItems={[
             {
               label: 'Visualize',
@@ -735,11 +758,11 @@ export default function BookReaderPage() {
                     if (data) {
 
                       addAnnotation(
-                        'highlight', 
-                        cfiRange, 
+                        'highlight',
+                        cfiRange,
                         {
-                          imgUrl: data.imgUrl
-                        }, 
+                          imgUrl: data.img_Url
+                        },
                         {
                           color: "#C20114",
                         }
@@ -846,7 +869,7 @@ export default function BookReaderPage() {
 
         <View style={styles.modalContainer}>
           <View style={styles.imageModalView}>
-            {selectedAnnotation?.data?.imgUrl ? (
+            {selectedAnnotation?.data?.img_url ? (
               <>
                 <View style={styles.imageHeader}>
                   <Text style={{ fontSize: 20 }}>Generated image:</Text>
@@ -873,7 +896,7 @@ export default function BookReaderPage() {
                   </TouchableOpacity>
                 </View>
                 <Image
-                  source={{ uri: selectedAnnotation?.data?.imgUrl }}
+                  source={{ uri: selectedAnnotation?.data?.img_url }}
                   style={{ width: 425, height: 425 }}
                   resizeMode="contain"
                 />
@@ -892,7 +915,7 @@ export default function BookReaderPage() {
                 <TouchableOpacity
                   style={styles.visualizeButton}
                   onPress={() => {
-                  if (selectedHighlight && !selectedHighlight.imgUrl) {
+                  if (selectedHighlight && !selectedHighlight.img_url) {
                     handleGenerateNewImage(selectedHighlight);
                   } else {
                     console.error("Highlight already has an image or is invalid");

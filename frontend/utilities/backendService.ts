@@ -21,7 +21,7 @@ export interface Highlight {
   id: string;
   text: string;
   location: string;
-  imgUrl?: string;
+  img_url?: string;
 }
 
 export interface Selection {

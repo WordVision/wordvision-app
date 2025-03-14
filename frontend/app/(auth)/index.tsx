@@ -30,7 +30,7 @@ export default function LandingPage() {
         </View>
 
         <View style={styles.buttonGroup}>
-          <Link style={[styles.signup, styles.button]} href="/login">Sign in</Link>
+          <Link style={[styles.signup, styles.button]} href="/signin">Sign in</Link>
           <Link style={[styles.signin, styles.button]} href="/signup">Create a new account</Link>
         </View>
       </View>

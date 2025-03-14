@@ -11,7 +11,7 @@ export interface Book {
   id: string;
   title: string;
   author: string;
-  imgUrl?: string;
+  img_url?: string;
   type?: string;
   size?: number;
 }
@@ -21,7 +21,7 @@ export interface Highlight {
   id: string;
   text: string;
   location: string;
-  imgUrl?: string;
+  img_url?: string;
 }
 
 export interface Selection {

@@ -1,10 +1,11 @@
 import { StyleSheet, View, Text, ActivityIndicator } from "react-native";
+import { ThemedText } from "./ThemedText";
 
 export default function Loading(props: { message: string }) {
   return (
     <View style={styles.loadingContainer}>
       <ActivityIndicator size="large" color="#007BFF" />
-      <Text>{props.message}</Text>
+      <ThemedText>{props.message}</ThemedText>
     </View>
   );
 }

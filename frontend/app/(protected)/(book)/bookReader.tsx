@@ -37,31 +37,30 @@ import {
 import Loading from "@/components/Loading";
 import { HighlightContext } from "@/utilities/highlightContext";
 
-import type { StackNavigationProp } from "@react-navigation/stack";
+// import type { StackNavigationProp } from "@react-navigation/stack";
+// import { RootStackParamList } from "@/app/(protected)/(home)/(tabs)/types.ts.bk"; // Adjust this path to match your project structure
 
-
-import { RootStackParamList } from "@/app/(protected)/(drawer)/(tabs)/types"; // Adjust this path to match your project structure
 import { useAuth } from "@/utilities/authProvider";
 import { useReader, Reader, Annotation } from "@epubjs-react-native/core";
 import { useFileSystem } from '@epubjs-react-native/expo-file-system';
 import { supabase } from "@/lib/supabase";
 
 import { File, Paths, Directory } from 'expo-file-system/next';
+import { useLocalSearchParams } from "expo-router";
 
 
 // Explicitly type navigation as a stack navigator
-type BookReaderScreenNavigationProp = StackNavigationProp<
-  RootStackParamList,
-  "bookReader"
->;
+// type BookReaderScreenNavigationProp = StackNavigationProp<
+//   RootStackParamList,
+//   "bookReader"
+// >;
 
-const BookReader: React.FC = () => {
+export default function BookReaderPage() {
   const user = useContext(AuthContext) as User;
 
 
   const {
     theme,
-    annotations,
     changeFontSize,
     changeFontFamily,
     changeTheme,
@@ -73,17 +72,21 @@ const BookReader: React.FC = () => {
   const { session } = useAuth();
 
   const [ selectedAnnotation, setSelectedAnnotation ] = useState<Annotation | null>(null);
+  const [ annotations, setAnnotations ] = useState<Annotation[]>([]);
 
   const { highlights, setHighlights } = useContext(HighlightContext);
 
   const ctxMenuRef = useRef<any>(null);
 
-  const route = useRoute();
-  const { bookId, userHighlight } = route.params as {
-    bookId: string;
-    userHighlight: Highlight;
-  };
-  const navigation = useNavigation<BookReaderScreenNavigationProp>(); // nav
+  // const route = useRoute();
+  //
+  // const { bookId, userHighlight } = route.params as {
+  //   bookId: string;
+  //   userHighlight: Highlight;
+  // };
+
+
+  // const navigation = useNavigation<BookReaderScreenNavigationProp>(); // nav
 
   const [location, setLocation] = useState<string | number>(0);
   const [bookUrl, setBookUrl] = useState<string | null>(null);
@@ -118,10 +121,15 @@ const BookReader: React.FC = () => {
   const imageURL = selectedHighlight?.imgUrl;
   const highlightId = imageURL?.split("/").pop()?.replace(".png", "");
 
-  // const navigation = useNavigation();
+  const { bookId } = useLocalSearchParams<{ bookId: string }>();
+  const navigation = useNavigation();
 
+  // Navigation options as a stack child
   useEffect(() => {
-    navigation.setOptions({ headerShown: false });
+    navigation.setOptions({
+      title: "Reader",
+      headerShown: true,
+    });
   }, [navigation]);
 
 
@@ -138,12 +146,19 @@ const BookReader: React.FC = () => {
 
       const database = await supabase
         .from("books")
-        .select("id, filename")
+        .select(`
+          id, filename,
+          highlights(
+            text,
+            location,
+            img_url
+          )
+        `)
         .eq("id", bookId)
         .limit(1)
         .single()
 
-      console.log(database.data?.filename);
+      console.log(database.data);
 
       if (database.data) {
 
@@ -172,7 +187,7 @@ const BookReader: React.FC = () => {
 
             console.log(file.uri);
             setBookUrl(file.uri);
-          } 
+          }
           catch (error) {
             console.error(error);
           }
@@ -181,6 +196,21 @@ const BookReader: React.FC = () => {
           console.error("Error fetching book from storage:", storage.error);
           setError("Error fetching book.");
         }
+
+        if (database.data.highlights.length > 0) {
+          setAnnotations(database.data.highlights.map(annotation => {
+            return {
+              cfiRange: annotation.location,
+              data: {
+                img_url: annotation.img_url
+              },
+              styles: { color: '#C20114' },
+              cfiRangeText: annotation.text,
+              type: 'highlight',
+            } as Annotation
+          }))
+        }
+
       }
       else {
         console.error("Error fetching book data from database:", database.error);
@@ -633,17 +663,12 @@ const BookReader: React.FC = () => {
     }
   };
 
-  const handleBack = () => {
-    navigation.navigate("bookDetails", { bookId });
-  };
+  // const handleBack = () => {
+  //   navigation.navigate("bookDetails", { bookId });
+  // };
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#007BFF" />
-        <Text>Loading book...</Text>
-      </View>
-    );
+    return <Loading message="Loading book..."/>
   }
 
   if (error) {
@@ -659,13 +684,22 @@ const BookReader: React.FC = () => {
   return (
     <View style={{ flex: 1 }}>
 
-      {/* Header with Back Button */}
+      {/* Header with Back Button
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Icon name="arrow-left" size={20} color="black" />
-        </TouchableOpacity>
+        </TouchableOpacity>          {
+            cfiRange: 'epubcfi(/6/10!/4/2/4,/1:0,/1:319)',
+            data: {},
+            sectionIndex: 4,
+            styles: { color: '#23CE6B' },
+            cfiRangeText:
+              'The pale Usher—threadbare in coat, heart, body, and brain; I see him now. He was ever dusting his old lexicons and grammars, with a queer handkerchief, mockingly embellished with all the gay flags of all the known nations of the world. He loved to dust his old grammars; it somehow mildly reminded him of his mortality.',
+            type: 'highlight',
+          },
         <Text style={styles.headerTitle}>Back</Text>
       </View>
+*/}
 
 
         {/*
@@ -701,6 +735,7 @@ const BookReader: React.FC = () => {
             setSelectedAnnotation(annotation);
             setImageModalVisible(true);
           }}
+          initialAnnotations={annotations}
           menuItems={[
             {
               label: 'Visualize',
@@ -710,12 +745,11 @@ const BookReader: React.FC = () => {
                 setModalVisible(true);
 
                 supabase.functions.invoke('highlight', {
-                  body: { 
+                  body: {
                     book_id: bookId,
                     text: text,
                     location: cfiRange,
-                    visualize: true
-
+                    visualize: true,
                   },
                 }).then(({data, error}) => {
 
@@ -724,11 +758,11 @@ const BookReader: React.FC = () => {
                     if (data) {
 
                       addAnnotation(
-                        'highlight', 
-                        cfiRange, 
+                        'highlight',
+                        cfiRange,
                         {
-                          imgUrl: data.imgUrl
-                        }, 
+                          imgUrl: data.img_Url
+                        },
                         {
                           color: "#C20114",
                         }
@@ -758,12 +792,14 @@ const BookReader: React.FC = () => {
         <Text>Book URL is not available.</Text>
       )}
 
+      {/*
       <TouchableOpacity
         style={styles.settingsButton}
         onPress={() => setSettingsModalVisible(true)}
       >
         <Icon name="cog" size={24} color="white" />
       </TouchableOpacity>
+*/}
 
       {contextMenu.visible && (
         <View
@@ -833,7 +869,7 @@ const BookReader: React.FC = () => {
 
         <View style={styles.modalContainer}>
           <View style={styles.imageModalView}>
-            {selectedAnnotation?.data?.imgUrl ? (
+            {selectedAnnotation?.data?.img_url ? (
               <>
                 <View style={styles.imageHeader}>
                   <Text style={{ fontSize: 20 }}>Generated image:</Text>
@@ -860,7 +896,7 @@ const BookReader: React.FC = () => {
                   </TouchableOpacity>
                 </View>
                 <Image
-                  source={{ uri: selectedAnnotation?.data?.imgUrl }}
+                  source={{ uri: selectedAnnotation?.data?.img_url }}
                   style={{ width: 425, height: 425 }}
                   resizeMode="contain"
                 />
@@ -879,7 +915,7 @@ const BookReader: React.FC = () => {
                 <TouchableOpacity
                   style={styles.visualizeButton}
                   onPress={() => {
-                  if (selectedHighlight && !selectedHighlight.imgUrl) {
+                  if (selectedHighlight && !selectedHighlight.img_url) {
                     handleGenerateNewImage(selectedHighlight);
                   } else {
                     console.error("Highlight already has an image or is invalid");
@@ -1117,4 +1153,3 @@ const styles = StyleSheet.create({
 
 });
 
-export default BookReader;

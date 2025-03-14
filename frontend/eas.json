@@ -1,0 +1,28 @@
+{
+  "cli": {
+    "version": ">= 15.0.15",
+    "appVersionSource": "remote",
+    "requireCommit": "true"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      },
+      "environment": "preview"
+    },
+    "preview2": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

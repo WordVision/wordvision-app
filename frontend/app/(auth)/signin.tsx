@@ -12,7 +12,7 @@ import { useNavigation, Link, useRouter } from "expo-router";
 import Icon from "react-native-vector-icons/Ionicons";
 import { supabase } from '@/lib/supabase'
 
-export default function LandingPage() {
+export default function SignInPage() {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -74,8 +74,6 @@ export default function LandingPage() {
               inputMode="email"
               autoCapitalize="none"
               onChangeText={setEmail}
-              inputMode="email"
-              autoCapitalize="none"
               value={email}
             />
           </View>

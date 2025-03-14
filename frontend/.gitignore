@@ -22,5 +22,6 @@ expo-env.d.ts
 .env*
 
 android/
+ios/
 
 .vscode/

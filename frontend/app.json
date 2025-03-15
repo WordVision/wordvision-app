@@ -9,20 +9,31 @@
     "scheme": "wordvision",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/my_splash.png",
+      "image": "./assets/images/icons/splash-icon.png",
+      "imageWidth": 200,
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#D7FBFF",
+      "dark": {
+        "image": "./assets/images/icons/splash-icon.png",
+        "backgroundColor": "#1A6792"
+      }
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.wordvision.WordVision"
+      "bundleIdentifier": "com.wordvision.app",
+      "icon": {
+        "dark": "./assets/images/icons/ios-dark.png",
+        "light": "./assets/images/icons/ios-light.png",
+        "tinted": "./assets/images/icons/ios-tinted.png"
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/my_logo.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/icons/android-adaptive-icon.png",
+        "monochromeImage": "./assets/images/icons/android-adaptive-icon.png",
+        "backgroundColor": "#1A6792"
       },
-      "package": "com.wordvision.WordVision"
+      "package": "com.wordvision.app"
     },
     "web": {
       "bundler": "metro",
@@ -40,6 +51,19 @@
             "node_modules/@expo-google-fonts/quando/Quando_400Regular.ttf",
             "node_modules/@expo-google-fonts/atkinson-hyperlegible/AtkinsonHyperlegible_400Regular.ttf"
           ]
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/icons/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#D7FBFF",
+          "dark": {
+            "image": "./assets/images/icons/splash-icon.png",
+            "backgroundColor": "#1A6792"
+          }
         }
       ]
     ],

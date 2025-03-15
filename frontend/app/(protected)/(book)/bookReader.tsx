@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useRef } from "react";
+import React, { useContext, useState, useEffect, useRef, useMemo } from "react";
 import {
   Modal,
   View,
@@ -9,6 +9,8 @@ import {
   Image,
   Switch,
   TextInput,
+  Pressable,
+  Button,
 } from "react-native";
 import { ReactReader } from "react-reader";
 import { useRoute } from "@react-navigation/native";
@@ -37,23 +39,23 @@ import {
 import Loading from "@/components/Loading";
 import { HighlightContext } from "@/utilities/highlightContext";
 
-// import type { StackNavigationProp } from "@react-navigation/stack";
-// import { RootStackParamList } from "@/app/(protected)/(home)/(tabs)/types.ts.bk"; // Adjust this path to match your project structure
-
 import { useAuth } from "@/utilities/authProvider";
 import { useReader, Reader, Annotation } from "@epubjs-react-native/core";
 import { useFileSystem } from '@epubjs-react-native/expo-file-system';
 import { supabase } from "@/lib/supabase";
 
 import { File, Paths, Directory } from 'expo-file-system/next';
-import { useLocalSearchParams } from "expo-router";
+import { Link, useLocalSearchParams } from "expo-router";
 
+import { Entypo } from '@expo/vector-icons';
 
-// Explicitly type navigation as a stack navigator
-// type BookReaderScreenNavigationProp = StackNavigationProp<
-//   RootStackParamList,
-//   "bookReader"
-// >;
+import {
+  BottomSheetModal,
+  BottomSheetModalProvider,
+  BottomSheetFlatList,
+  BottomSheetTextInput,
+} from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function BookReaderPage() {
   const user = useContext(AuthContext) as User;
@@ -67,16 +69,17 @@ export default function BookReaderPage() {
     goToLocation,
     addAnnotation,
     removeAnnotation,
+    toc,
+    landmarks,
+    section,
   } = useReader();
-
-  const { session } = useAuth();
 
   const [ selectedAnnotation, setSelectedAnnotation ] = useState<Annotation | null>(null);
   const [ annotations, setAnnotations ] = useState<Annotation[]>([]);
 
   const { highlights, setHighlights } = useContext(HighlightContext);
 
-  const ctxMenuRef = useRef<any>(null);
+  // const ctxMenuRef = useRef<any>(null);
 
   // const route = useRoute();
   //
@@ -86,15 +89,15 @@ export default function BookReaderPage() {
   // };
 
 
-  // const navigation = useNavigation<BookReaderScreenNavigationProp>(); // nav
 
-  const [location, setLocation] = useState<string | number>(0);
+  // const [location, setLocation] = useState<string | number>(0);
+
   const [bookUrl, setBookUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
-  const [custompromptModelVisible, setCustomPromptModelVisible] =
-    useState<boolean>(false);
+
+  const [custompromptModelVisible, setCustomPromptModelVisible] = useState<boolean>(false);
   const [imageModalVisible, setImageModalVisible] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<boolean>(false);
   const [saveMessage, setSaveMessage] = useState<string>("Saving highlight...");
@@ -118,17 +121,32 @@ export default function BookReaderPage() {
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [fontSize, setFontSize] = useState(16);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const imageURL = selectedHighlight?.imgUrl;
-  const highlightId = imageURL?.split("/").pop()?.replace(".png", "");
+  // const imageURL = selectedHighlight?.imgUrl;
+  // const highlightId = imageURL?.split("/").pop()?.replace(".png", "");
 
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
   const navigation = useNavigation();
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const snapPoints = useMemo(() => ['70%', '100%'], []);
+
 
   // Navigation options as a stack child
   useEffect(() => {
     navigation.setOptions({
       title: "Reader",
       headerShown: true,
+      headerRight: () => (
+        <Pressable
+          style={({pressed}) => {
+            return {
+              opacity: pressed ? 0.3 : 1
+            }
+          }}
+          onPress={() => bottomSheetRef.current?.present()}
+        >
+          <Entypo name="list" size={24} color="white" />
+        </Pressable>
+      ),
     });
   }, [navigation]);
 
@@ -220,107 +238,107 @@ export default function BookReaderPage() {
       setLoading(false);
     };
 
-    const fetchSettings = async () => {
-      try {
-        const response = await getBookSettings(user, bookId);
-        if (response) {
-          const parsedFontSize = parseInt(
-            response.font_size.replace("px", ""),
-            10
-          );
-          setFontSize(parsedFontSize);
-          setIsDarkMode(response.dark_mode || false);
-        }
-      } catch (err) {
-        console.error("Error fetching book settings:", err);
-      }
-    };
+    // const fetchSettings = async () => {
+    //   try {
+    //     const response = await getBookSettings(user, bookId);
+    //     if (response) {
+    //       const parsedFontSize = parseInt(
+    //         response.font_size.replace("px", ""),
+    //         10
+    //       );
+    //       setFontSize(parsedFontSize);
+    //       setIsDarkMode(response.dark_mode || false);
+    //     }
+    //   } catch (err) {
+    //     console.error("Error fetching book settings:", err);
+    //   }
+    // };
 
     fetchBook();
     // fetchSettings();
   }, [bookId, user]);
 
-  useEffect(() => {
-    if (rendition) {
-      // Apply settings to rendition only once after it's initialized
-      rendition.themes.fontSize(`${fontSize}px`);
-      rendition.themes.register("custom", {
-        "html, body": {
-          color: isDarkMode ? "#FFFFFF" : "#000000",
-          background: isDarkMode ? "#000000" : "#FFFFFF",
-        },
-      });
-      rendition.themes.select("custom");
-    }
-  }, [rendition, fontSize, isDarkMode]);
+  // useEffect(() => {
+  //   if (rendition) {
+  //     // Apply settings to rendition only once after it's initialized
+  //     rendition.themes.fontSize(`${fontSize}px`);
+  //     rendition.themes.register("custom", {
+  //       "html, body": {
+  //         color: isDarkMode ? "#FFFFFF" : "#000000",
+  //         background: isDarkMode ? "#000000" : "#FFFFFF",
+  //       },
+  //     });
+  //     rendition.themes.select("custom");
+  //   }
+  // }, [rendition, fontSize, isDarkMode]);
 
   // Adding highlights
-  useEffect(() => {
-    if (highlights && rendition) {
-      highlights.forEach((highlight) => {
-        rendition.annotations.add(
-          "highlight",
-          highlight.location,
-          {},
-          () => handleHighlightClick(highlight),
-          "hl",
-          {
-            fill: "red",
-            "fill-opacity": "0.5",
-            "mix-blend-mode": "multiply",
-          }
-        );
-      });
-
-      function setContextMenuHandler(_: Section, view: any) {
-        const iframe = view.iframe as HTMLIFrameElement | null;
-        const iframeDoc = iframe?.contentDocument;
-        const iframeWindow = iframe?.contentWindow;
-
-        if (iframeDoc && iframeWindow) {
-          function contextMenuHandler(event: MouseEvent) {
-            event.preventDefault();
-            const textSelection = iframeWindow?.getSelection();
-            if (textSelection && textSelection.toString().length > 0) {
-              const x = event.screenX - window.screenX + 5;
-              const y = event.screenY - window.screenY - 275;
-              setContextMenu({ visible: true, x, y });
-            }
-          }
-
-          function dismissMenuHandler(e: MouseEvent) {
-            const menu = ctxMenuRef.current as HTMLElement;
-            if (menu && !menu.contains(e.target as Node) && e.button === 0) {
-              setContextMenu({ visible: false, x: 0, y: 0 });
-            }
-          }
-
-          iframeDoc.addEventListener("contextmenu", contextMenuHandler);
-          iframeDoc.addEventListener("mousedown", dismissMenuHandler);
-        } else {
-          console.error("Unable to find epubjs iframe");
-        }
-      }
-
-      function setRenderSelection(cfiRange: string, _: Contents) {
-        if (rendition) {
-          const selection: Selection = {
-            text: rendition.getRange(cfiRange).toString(),
-            location: cfiRange,
-          };
-          setSelection(selection);
-        }
-      }
-
-      rendition.on("rendered", setContextMenuHandler);
-      rendition.on("selected", setRenderSelection);
-
-      return () => {
-        rendition?.off("rendered", setContextMenuHandler);
-        rendition?.off("selected", setRenderSelection);
-      };
-    }
-  }, [setSelection, rendition]);
+  // useEffect(() => {
+  //   if (highlights && rendition) {
+  //     highlights.forEach((highlight) => {
+  //       rendition.annotations.add(
+  //         "highlight",
+  //         highlight.location,
+  //         {},
+  //         () => handleHighlightClick(highlight),
+  //         "hl",
+  //         {
+  //           fill: "red",
+  //           "fill-opacity": "0.5",
+  //           "mix-blend-mode": "multiply",
+  //         }
+  //       );
+  //     });
+  //
+  //     function setContextMenuHandler(_: Section, view: any) {
+  //       const iframe = view.iframe as HTMLIFrameElement | null;
+  //       const iframeDoc = iframe?.contentDocument;
+  //       const iframeWindow = iframe?.contentWindow;
+  //
+  //       if (iframeDoc && iframeWindow) {
+  //         function contextMenuHandler(event: MouseEvent) {
+  //           event.preventDefault();
+  //           const textSelection = iframeWindow?.getSelection();
+  //           if (textSelection && textSelection.toString().length > 0) {
+  //             const x = event.screenX - window.screenX + 5;
+  //             const y = event.screenY - window.screenY - 275;
+  //             setContextMenu({ visible: true, x, y });
+  //           }
+  //         }
+  //
+  //         function dismissMenuHandler(e: MouseEvent) {
+  //           const menu = ctxMenuRef.current as HTMLElement;
+  //           if (menu && !menu.contains(e.target as Node) && e.button === 0) {
+  //             setContextMenu({ visible: false, x: 0, y: 0 });
+  //           }
+  //         }
+  //
+  //         iframeDoc.addEventListener("contextmenu", contextMenuHandler);
+  //         iframeDoc.addEventListener("mousedown", dismissMenuHandler);
+  //       } else {
+  //         console.error("Unable to find epubjs iframe");
+  //       }
+  //     }
+  //
+  //     function setRenderSelection(cfiRange: string, _: Contents) {
+  //       if (rendition) {
+  //         const selection: Selection = {
+  //           text: rendition.getRange(cfiRange).toString(),
+  //           location: cfiRange,
+  //         };
+  //         setSelection(selection);
+  //       }
+  //     }
+  //
+  //     rendition.on("rendered", setContextMenuHandler);
+  //     rendition.on("selected", setRenderSelection);
+  //
+  //     return () => {
+  //       rendition?.off("rendered", setContextMenuHandler);
+  //       rendition?.off("selected", setRenderSelection);
+  //     };
+  //   }
+  // }, [setSelection, rendition]);
 
   const handleRegenerate = async () => {
     if (!selectedHighlight || !selectedHighlight.imgUrl) return;
@@ -413,59 +431,59 @@ export default function BookReaderPage() {
       setModalVisible(false);
     }
   };
-
-
-  const handleHighlight = async () => {
-    if (rendition && selection) {
-      setSaveMessage("Saving highlight...");
-      setModalVisible(true);
-
-      try {
-        const response = await createUserHighlight(user, bookId, selection);
-
-        if (response) {
-          setModalVisible(false);
-          rendition.annotations.add(
-            "highlight",
-            selection.location,
-            undefined,
-            undefined,
-            "hl",
-            {
-              fill: "red",
-              "fill-opacity": "0.5",
-              "mix-blend-mode": "multiply",
-            }
-          );
-          // @ts-ignore: DO NOT REMOVE THIS COMMENT
-          // This annotation was added because typescript throws an error
-          //   for getContents()[0]
-          // The return type for getContents() is outdated and actually returns
-          //   Contents[] instead of Contents
-          rendition.getContents()[0]?.window?.getSelection()?.removeAllRanges();
-
-          setHighlights(prev => {
-            return [
-              ...prev,
-              {
-                id: response.highlightId,
-               ...selection,
-              }
-            ]
-          });
-
-          setSaveError(false);
-        } else {
-          console.error("Failed to save highlight", response);
-          setSaveError(true);
-        }
-      } catch (error) {
-        console.error("Failed to save highlight", error);
-        setSaveError(true);
-      }
-    }
-    setContextMenu({ visible: false, x: 0, y: 0 });
-  };
+  //
+  //
+  // const handleHighlight = async () => {
+  //   if (rendition && selection) {
+  //     setSaveMessage("Saving highlight...");
+  //     setModalVisible(true);
+  //
+  //     try {
+  //       const response = await createUserHighlight(user, bookId, selection);
+  //
+  //       if (response) {
+  //         setModalVisible(false);
+  //         rendition.annotations.add(
+  //           "highlight",
+  //           selection.location,
+  //           undefined,
+  //           undefined,
+  //           "hl",
+  //           {
+  //             fill: "red",
+  //             "fill-opacity": "0.5",
+  //             "mix-blend-mode": "multiply",
+  //           }
+  //         );
+  //         // @ts-ignore: DO NOT REMOVE THIS COMMENT
+  //         // This annotation was added because typescript throws an error
+  //         //   for getContents()[0]
+  //         // The return type for getContents() is outdated and actually returns
+  //         //   Contents[] instead of Contents
+  //         rendition.getContents()[0]?.window?.getSelection()?.removeAllRanges();
+  //
+  //         setHighlights(prev => {
+  //           return [
+  //             ...prev,
+  //             {
+  //               id: response.highlightId,
+  //              ...selection,
+  //             }
+  //           ]
+  //         });
+  //
+  //         setSaveError(false);
+  //       } else {
+  //         console.error("Failed to save highlight", response);
+  //         setSaveError(true);
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to save highlight", error);
+  //       setSaveError(true);
+  //     }
+  //   }
+  //   setContextMenu({ visible: false, x: 0, y: 0 });
+  // };
 
   // Function to handle delete image highlight
   const deleteImageHighlight = async () => {
@@ -502,139 +520,139 @@ export default function BookReaderPage() {
     }
   };
 
-  const handleRenderImage = async () => {
-    if (rendition && selection) {
-      setSaveMessage("Visualizing highlight...");
-      setModalVisible(true);
-
-      try {
-        const url = `http://localhost:8000/book/${bookId}/highlight?image=true`;
-        const response = await fetch(url, {
-          method: "POST",
-          body: JSON.stringify(selection),
-          headers: user.authorizationHeaders(),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const highlight = { ...selection, imgUrl: data.imgUrl, id: data.highlightId };
-
-          setGeneratedImageUrl(data.imgUrl || null);
-          setHighlights([...highlights, { ...selection, imgUrl: data.imgUrl, id: data.highlightId }]);
-
-          rendition.annotations.add(
-            "highlight",
-            highlight.location,
-            {},
-            () => handleHighlightClick(highlight),
-            "hl",
-            {
-              fill: "red",
-              "fill-opacity": "0.5",
-              "mix-blend-mode": "multiply",
-            }
-          );
-
-          // @ts-ignore: DO NOT REMOVE THIS COMMENT
-          // This annotation was added because typescript throws an error
-          //   for getContents()[0]
-          // The return type for getContents() is outdated and actually returns
-          //   Contents[] instead of Contents
-          rendition.getContents()[0]?.window?.getSelection()?.removeAllRanges();
-        }
-        else {
-          console.error("Failed to visualize highlight", response);
-          setSaveError(true);
-        }
-      } catch (error) {
-        console.error("Failed to visualize highlight", error);
-        setSaveError(true);
-      } finally {
-        setModalVisible(false);
-      }
-    }
-    setContextMenu({ visible: false, x: 0, y: 0 });
-  };
-
-  const handleHighlightClick = (highlight: Highlight) => {
-    setSelectedHighlight(highlight);
-    setImageModalVisible(true);
-  };
-
-  const applySettings = () => {
-    if (rendition) {
-      rendition.themes.fontSize(`${fontSize}px`);
-      rendition.themes.register("custom", {
-        "html, body": {
-          color: isDarkMode ? "#FFFFFF" : "#000000",
-          background: isDarkMode ? "#000000" : "#FFFFFF",
-        },
-      });
-      rendition.themes.select("custom");
-    }
-
-    const saveSettings = async () => {
-      try {
-        const payload = {
-          font_size: `${fontSize}px`, // Ensure it's a string with "px"
-          dark_mode: isDarkMode,
-        };
-        await updateBookSettings(user, bookId, payload);
-        console.log("Settings saved successfully:", payload);
-      } catch (err) {
-        console.error("Error saving book settings:", err);
-      }
-    };
-
-    saveSettings();
-
-    setSettingsModalVisible(false);
-  };
+  // const handleRenderImage = async () => {
+  //   if (rendition && selection) {
+  //     setSaveMessage("Visualizing highlight...");
+  //     setModalVisible(true);
+  //
+  //     try {
+  //       const url = `http://localhost:8000/book/${bookId}/highlight?image=true`;
+  //       const response = await fetch(url, {
+  //         method: "POST",
+  //         body: JSON.stringify(selection),
+  //         headers: user.authorizationHeaders(),
+  //       });
+  //
+  //       if (response.ok) {
+  //         const data = await response.json();
+  //         const highlight = { ...selection, imgUrl: data.imgUrl, id: data.highlightId };
+  //
+  //         setGeneratedImageUrl(data.imgUrl || null);
+  //         setHighlights([...highlights, { ...selection, imgUrl: data.imgUrl, id: data.highlightId }]);
+  //
+  //         rendition.annotations.add(
+  //           "highlight",
+  //           highlight.location,
+  //           {},
+  //           () => handleHighlightClick(highlight),
+  //           "hl",
+  //           {
+  //             fill: "red",
+  //             "fill-opacity": "0.5",
+  //             "mix-blend-mode": "multiply",
+  //           }
+  //         );
+  //
+  //         // @ts-ignore: DO NOT REMOVE THIS COMMENT
+  //         // This annotation was added because typescript throws an error
+  //         //   for getContents()[0]
+  //         // The return type for getContents() is outdated and actually returns
+  //         //   Contents[] instead of Contents
+  //         rendition.getContents()[0]?.window?.getSelection()?.removeAllRanges();
+  //       }
+  //       else {
+  //         console.error("Failed to visualize highlight", response);
+  //         setSaveError(true);
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to visualize highlight", error);
+  //       setSaveError(true);
+  //     } finally {
+  //       setModalVisible(false);
+  //     }
+  //   }
+  //   setContextMenu({ visible: false, x: 0, y: 0 });
+  // };
+  //
+  // const handleHighlightClick = (highlight: Highlight) => {
+  //   setSelectedHighlight(highlight);
+  //   setImageModalVisible(true);
+  // };
+  //
+  // const applySettings = () => {
+  //   if (rendition) {
+  //     rendition.themes.fontSize(`${fontSize}px`);
+  //     rendition.themes.register("custom", {
+  //       "html, body": {
+  //         color: isDarkMode ? "#FFFFFF" : "#000000",
+  //         background: isDarkMode ? "#000000" : "#FFFFFF",
+  //       },
+  //     });
+  //     rendition.themes.select("custom");
+  //   }
+  //
+  //   const saveSettings = async () => {
+  //     try {
+  //       const payload = {
+  //         font_size: `${fontSize}px`, // Ensure it's a string with "px"
+  //         dark_mode: isDarkMode,
+  //       };
+  //       await updateBookSettings(user, bookId, payload);
+  //       console.log("Settings saved successfully:", payload);
+  //     } catch (err) {
+  //       console.error("Error saving book settings:", err);
+  //     }
+  //   };
+  //
+  //   saveSettings();
+  //
+  //   setSettingsModalVisible(false);
+  // };
 
   //handle edit icon for custom text image generation
-  const handleCustomImagePrompt = async () => {
-    setSaveMessage("Visualizing highlight...");
-    setModalVisible(true);
-
-    if (inputText) {
-      try {
-        const imgUrl = selectedHighlight?.imgUrl;
-        const highlightId = imgUrl?.split("/").pop()?.replace(".png", "") || "";
-
-        const response = await createCustomImage(
-          user,
-          bookId,
-          highlightId,
-          inputText
-        );
-
-        if (response) {
-          const updatedHighlight = await fetchUpdatedHighlight(
-            user,
-            bookId,
-            highlightId
-          );
-          const timestampedUrl = `${updatedHighlight.imgUrl}?t=${new Date().getTime()}`;
-
-          setHighlights(
-            highlights.map((h) =>
-              h.location === selectedHighlight?.location
-                ? { ...h, imgUrl: timestampedUrl }
-                : h
-            )
-          );
-          setSelectedHighlight({ ...updatedHighlight, imgUrl: timestampedUrl });
-        }
-      } catch (error) {
-        console.error(
-          "Error in regenerating image or fetching updated highlight:",
-          error
-        );
-      } finally {
-        setModalVisible(false);
-      }
-    }
-  }
+  // const handleCustomImagePrompt = async () => {
+  //   setSaveMessage("Visualizing highlight...");
+  //   setModalVisible(true);
+  //
+  //   if (inputText) {
+  //     try {
+  //       const imgUrl = selectedHighlight?.imgUrl;
+  //       const highlightId = imgUrl?.split("/").pop()?.replace(".png", "") || "";
+  //
+  //       const response = await createCustomImage(
+  //         user,
+  //         bookId,
+  //         highlightId,
+  //         inputText
+  //       );
+  //
+  //       if (response) {
+  //         const updatedHighlight = await fetchUpdatedHighlight(
+  //           user,
+  //           bookId,
+  //           highlightId
+  //         );
+  //         const timestampedUrl = `${updatedHighlight.imgUrl}?t=${new Date().getTime()}`;
+  //
+  //         setHighlights(
+  //           highlights.map((h) =>
+  //             h.location === selectedHighlight?.location
+  //               ? { ...h, imgUrl: timestampedUrl }
+  //               : h
+  //           )
+  //         );
+  //         setSelectedHighlight({ ...updatedHighlight, imgUrl: timestampedUrl });
+  //       }
+  //     } catch (error) {
+  //       console.error(
+  //         "Error in regenerating image or fetching updated highlight:",
+  //         error
+  //       );
+  //     } finally {
+  //       setModalVisible(false);
+  //     }
+  //   }
+  // }
 
   // Delete highlight with no text from the model
   const handleDeletehighlight = async () => {
@@ -682,25 +700,8 @@ export default function BookReaderPage() {
 
 
   return (
+    <GestureHandlerRootView>
     <View style={{ flex: 1 }}>
-
-      {/* Header with Back Button
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Icon name="arrow-left" size={20} color="black" />
-        </TouchableOpacity>          {
-            cfiRange: 'epubcfi(/6/10!/4/2/4,/1:0,/1:319)',
-            data: {},
-            sectionIndex: 4,
-            styles: { color: '#23CE6B' },
-            cfiRangeText:
-              'The pale Usher—threadbare in coat, heart, body, and brain; I see him now. He was ever dusting his old lexicons and grammars, with a queer handkerchief, mockingly embellished with all the gay flags of all the known nations of the world. He loved to dust his old grammars; it somehow mildly reminded him of his mortality.',
-            type: 'highlight',
-          },
-        <Text style={styles.headerTitle}>Back</Text>
-      </View>
-*/}
-
 
         {/*
         <ReactReader
@@ -735,6 +736,8 @@ export default function BookReaderPage() {
             setSelectedAnnotation(annotation);
             setImageModalVisible(true);
           }}
+
+
           initialAnnotations={annotations}
           menuItems={[
             {
@@ -793,6 +796,84 @@ export default function BookReaderPage() {
       )}
 
       {/*
+          onDismiss={() => setSearchTerm('')}
+*/}
+
+      <BottomSheetModalProvider>
+        <BottomSheetModal
+          ref={bottomSheetRef}
+          index={0}
+          snapPoints={snapPoints}
+          enablePanDownToClose
+          style={{
+            ...styles.container,
+            backgroundColor: theme.body.background,
+          }}
+          handleStyle={{ backgroundColor: theme.body.background }}
+          backgroundStyle={{ backgroundColor: theme.body.background }}
+        >
+          <BottomSheetFlatList
+            data={toc}
+            showsVerticalScrollIndicator={false}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <Pressable
+                key={item.id}
+                style={({pressed}) => ({
+                  backgroundColor: pressed ? "#fff" : "#dbdbdb",
+                  marginVertical: 2,
+                  marginHorizontal: 24,
+                  paddingVertical: 8,
+                  paddingHorizontal: 16,
+                  borderRadius: 5
+                })}
+                onPress={() => {
+                  goToLocation(item.href.split('/')[1])
+                  bottomSheetRef.current?.dismiss();
+                }}
+              >
+                <View>
+                  <Text
+                    style={{
+                      color: section?.id === item.id
+                        ? "red"
+                        : "black",
+                    }}
+                  >
+                    {item.label}
+                  </Text>
+                </View>
+              </Pressable>
+            )}
+            ListHeaderComponent={
+              <View style={{
+                width: '100%',
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginVertical: 10,
+                paddingHorizontal: 24
+              }}>
+                <Text style={{
+                  fontSize: 24
+                }}>
+                  Table of Contents
+                </Text>
+
+                <Pressable onPress={() => {bottomSheetRef.current?.dismiss()}}>
+                  <Text style={{
+                    fontSize: 16
+                  }}>Close</Text>
+                </Pressable>
+              </View>
+            }
+            style={{ width: '100%' }}
+            maxToRenderPerBatch={20}
+          />
+        </BottomSheetModal>
+      </BottomSheetModalProvider>
+
+      {/*
       <TouchableOpacity
         style={styles.settingsButton}
         onPress={() => setSettingsModalVisible(true)}
@@ -800,6 +881,8 @@ export default function BookReaderPage() {
         <Icon name="cog" size={24} color="white" />
       </TouchableOpacity>
 */}
+
+      {/*
 
       {contextMenu.visible && (
         <View
@@ -823,7 +906,9 @@ export default function BookReaderPage() {
           </TouchableOpacity>
         </View>
       )}
+*/}
 
+      {/*
       <Modal
         animationType="slide"
         transparent={true}
@@ -850,6 +935,7 @@ export default function BookReaderPage() {
           </View>
         </View>
       </Modal>
+*/}
 
       <Modal
         animationType="slide"
@@ -857,6 +943,7 @@ export default function BookReaderPage() {
         visible={imageModalVisible}
         onRequestClose={() => setImageModalVisible(false)}
       >
+
       {/*
             {selectedHighlight?.imgUrl ? (
 
@@ -933,7 +1020,7 @@ export default function BookReaderPage() {
         </View>
       </Modal>
 
-      {/* Model for custom text prompt */}
+      {/* Model for custom text prompt
       <Modal
         animationType="slide"
         transparent={true}
@@ -968,6 +1055,7 @@ export default function BookReaderPage() {
           </View>
         </View>
       </Modal>
+*/}
 
       {/* Saving highlight spinner */}
       <Modal
@@ -997,6 +1085,7 @@ export default function BookReaderPage() {
         </View>
       </Modal>
     </View>
+    </GestureHandlerRootView>
   );
 };
 

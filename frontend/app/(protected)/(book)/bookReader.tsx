@@ -70,7 +70,6 @@ export default function BookReaderPage() {
     addAnnotation,
     removeAnnotation,
     toc,
-    landmarks,
     section,
   } = useReader();
 

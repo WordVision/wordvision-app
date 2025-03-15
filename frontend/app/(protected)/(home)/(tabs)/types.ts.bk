@@ -1,5 +1,5 @@
 // src/types.ts
-import { Highlight } from "./highlights";
+import { Highlight } from "@/utilities/backendService";
 
 export type RootStackParamList = {
   library: undefined; // No params for library

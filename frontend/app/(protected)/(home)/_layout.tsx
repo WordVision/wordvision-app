@@ -8,25 +8,24 @@ import {
 } from "@react-navigation/drawer";
 import { View, StyleSheet } from "react-native";
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
-import { Auth } from "@/utilities/authContext";
+import { supabase } from "@/lib/supabase";
+import { useNavigation } from "expo-router";
+import { useEffect } from "react";
 
 export default function DrawerLayout() {
+
+  const navigation = useNavigation();
+
+  // Navigation options as a stack child
+  useEffect(() => {
+    navigation.setOptions({
+      headerShown: false,
+    });
+  }, [navigation]);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Drawer drawerContent={(props) => <SignOutBtn {...props} />}>
-        <Drawer.Screen
-          name="(tabs)"
-          options={{
-            drawerLabel: "Home",
-            title: "WordVision",
-            drawerIcon: ({ color, focused }) => (
-              <TabBarIcon
-                name={focused ? "book" : "book-outline"}
-                color={color}
-              />
-            ),
-          }}
-        />
         <Drawer.Screen
           name="user"
           options={{
@@ -38,26 +37,6 @@ export default function DrawerLayout() {
                 color={color}
               />
             ),
-          }}
-        />
-        <Drawer.Screen
-          name="bookDetails"
-          options={{
-            title: "Book Details",
-            drawerItemStyle: { display: 'none' }, // Hides the screen from the drawer list
-          }}
-        />
-        <Drawer.Screen
-          name="highlights"
-          options={{
-            title: "Highlights",
-            drawerItemStyle: { display: 'none' }, // Hides the screen from the drawer list
-          }}
-        />
-        <Drawer.Screen
-          name="bookReader"
-          options={{
-            drawerItemStyle: { display: 'none' }, // Hides the screen from the drawer list
           }}
         />
       </Drawer>
@@ -76,7 +55,8 @@ function SignOutBtn(props: DrawerContentComponentProps) {
         <DrawerItem
           label="Sign Out"
           onPress={() => {
-            Auth.signOut();
+            // Auth.signOut();
+            supabase.auth.signOut();
           }}
           icon={({ color, focused }) => (
             <TabBarIcon

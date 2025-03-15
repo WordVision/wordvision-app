@@ -14,9 +14,7 @@ import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { AuthContext, User, getUser } from "@/utilities/authContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/FontAwesome";
-import { StackNavigationProp } from "@react-navigation/stack";
-import { RootStackParamList } from "./types";
-import { router } from "expo-router";
+import { Link, router, useLocalSearchParams, useRouter } from "expo-router";
 import { BookContext } from "@/utilities/bookContext";
 import { Book } from "@/utilities/backendService";
 import Loading from "@/components/Loading";
@@ -24,9 +22,14 @@ import {
   deleteUserSelectedBook,
   getBookMetaData,
 } from "@/utilities/backendService";
+import { useAuth } from "@/utilities/authProvider";
+import { supabase } from "@/lib/supabase";
 
-export default function BookDetailsScreen() {
+export default function BookDetailsPage() {
+
   const user = useContext(AuthContext) as User;
+  const { session } = useAuth();
+
   const { setBooks } = useContext(BookContext);
 
   const [book, setBook] = useState<Book | null>(null);
@@ -39,53 +42,78 @@ export default function BookDetailsScreen() {
   const [deletingBook, setDeletingBook] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
 
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-  const route = useRoute<RouteProp<RootStackParamList, "bookReader">>();
-  const { bookId } = route.params;
-  const backendURL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
+  const { bookId } = useLocalSearchParams<{ bookId: string }>();
+  const navigation = useNavigation();
+  const router = useRouter();
+
+  // Navigation options as a stack child
+  useEffect(() => {
+    navigation.setOptions({
+      headerShown: true,
+      title: "Book Details",
+      headerRight: () => (
+        <Link href={{
+          pathname: "/(protected)/(book)/bookReader",
+          params: { bookId }
+        }} asChild>
+          <TouchableOpacity>
+            <Text style={styles.readButton}>Read</Text>
+          </TouchableOpacity>
+        </Link>
+      ),
+    });
+  }, [navigation]);
+
 
   useEffect(() => {
     const fetchBookDetails = async () => {
-      try {
-        const user = await getUser();
-        if (!user) {
-          Alert.alert("Error", "No user found");
-          return;
-        }
+      setLoading(true);
 
-        const data = await getBookMetaData(user, bookId);
+      console.log(bookId)
+
+      const { data, error } = await supabase
+        .from('books')
+        .select()
+        .eq('id', bookId)
+        .limit(1)
+        .single();
+
+      console.log({data});
+
+      if (data) {
         setBook(data);
-      } catch (error) {
-        Alert.alert("Error", "An error occurred while fetching book details.");
-      } finally {
-        setLoading(false);
       }
+      else {
+        Alert.alert("Error", `An error occurred while fetching book details: ${error?.message}`);
+      }
+
+      setLoading(false);
     };
 
-    const fetchStoredData = async () => {
-      try {
-        const storedNotes = await AsyncStorage.getItem(`notes_${bookId}`);
-        if (storedNotes) setNotes(storedNotes);
-
-        const storedStarred = await AsyncStorage.getItem(`isStarred_${bookId}`);
-        if (storedStarred) setIsStarred(JSON.parse(storedStarred));
-
-        const storedClocked = await AsyncStorage.getItem(`isClocked_${bookId}`);
-        if (storedClocked) setIsClocked(JSON.parse(storedClocked));
-
-        const storedChecked = await AsyncStorage.getItem(`isChecked_${bookId}`);
-        if (storedChecked) setIsChecked(JSON.parse(storedChecked));
-      } catch (error) {
-        console.error("Failed to load data from AsyncStorage:", error);
-      }
-    };
+    // const fetchStoredData = async () => {
+    //   try {
+    //     const storedNotes = await AsyncStorage.getItem(`notes_${bookId}`);
+    //     if (storedNotes) setNotes(storedNotes);
+    //
+    //     const storedStarred = await AsyncStorage.getItem(`isStarred_${bookId}`);
+    //     if (storedStarred) setIsStarred(JSON.parse(storedStarred));
+    //
+    //     const storedClocked = await AsyncStorage.getItem(`isClocked_${bookId}`);
+    //     if (storedClocked) setIsClocked(JSON.parse(storedClocked));
+    //
+    //     const storedChecked = await AsyncStorage.getItem(`isChecked_${bookId}`);
+    //     if (storedChecked) setIsChecked(JSON.parse(storedChecked));
+    //   } catch (error) {
+    //     console.error("Failed to load data from AsyncStorage:", error);
+    //   }
+    // };
 
     fetchBookDetails();
-    fetchStoredData();
+    // fetchStoredData();
   }, [bookId]);
 
   if (loading) {
-    return <Text>Loading...</Text>;
+    return <Loading message="Loading book details..."/>;
   }
 
   if (!book) {
@@ -165,6 +193,9 @@ export default function BookDetailsScreen() {
 
   return (
     <View style={styles.container}>
+
+    {/*
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="chevron-left" size={24} color="#000" />
@@ -180,6 +211,9 @@ export default function BookDetailsScreen() {
           <Text style={styles.readButton}>Read</Text>
         </TouchableOpacity>
       </View>
+*/}
+
+      {/*
 
       <Modal
         transparent={true}
@@ -219,9 +253,11 @@ export default function BookDetailsScreen() {
         </View>
       </Modal>
 
+      */}
+
       <View style={styles.bookImageContainer}>
         <Image
-          source={{ uri: book.imgUrl || "https://placehold.co/300x450" }}
+          source={{ uri: book.img_url || "https://placehold.co/300x450" }}
           style={styles.bookImage}
         />
       </View>
@@ -232,6 +268,9 @@ export default function BookDetailsScreen() {
         <Text style={styles.bookAuthor}>by {book.author}</Text>
 
         <View style={styles.actionIcons}>
+
+          {/*
+
           <TouchableOpacity onPress={toggleStar}>
             <Icon
               name="star"
@@ -262,6 +301,9 @@ export default function BookDetailsScreen() {
               }}
             />
           </TouchableOpacity>
+
+          */}
+
           <TouchableOpacity
             onPress={() => {
               navigation.navigate("highlights", { bookId: bookId });
@@ -277,6 +319,8 @@ export default function BookDetailsScreen() {
             />
           </TouchableOpacity>
 
+          {/*
+
           <TouchableOpacity onPress={handleDeleteAction}>
             <Icon
               name="trash"
@@ -284,14 +328,22 @@ export default function BookDetailsScreen() {
               style={{ color: "gray", marginHorizontal: 10 }}
             />
           </TouchableOpacity>
+
+          */}
         </View>
+
+        {/*
 
         <Text style={styles.bookMeta}>Last time read: (Date and Time)</Text>
 
         <Text style={styles.bookMeta}>
           File Type: {book.type}, Size: {formatFileSize(book.size)}
         </Text>
+
+        */}
       </View>
+
+      {/*
 
       <View style={styles.notesSection}>
         <Text style={styles.notesHeader}>Notes:</Text>
@@ -303,6 +355,9 @@ export default function BookDetailsScreen() {
           onChangeText={handleNotesChange}
         />
       </View>
+
+      */}
+
     </View>
   );
 }

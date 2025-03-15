@@ -1,16 +1,19 @@
-import { Alert } from "react-native";
-import { User } from "./authContext";
+import { Alert, Platform } from "react-native";
+import { Session } from "@supabase/supabase-js";
 
-const backendURL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
+// const backendURL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
+// const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://10.0.2.2:8000";
+const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://192.168.2.59:8000";
+// const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://10.0.0.145:8000";
 
 // Book interface
 export interface Book {
   id: string;
   title: string;
   author: string;
-  imgUrl?: string;
-  type: string;
-  size: number;
+  img_url?: string;
+  type?: string;
+  size?: number;
 }
 
 // Highlight interface
@@ -18,7 +21,7 @@ export interface Highlight {
   id: string;
   text: string;
   location: string;
-  imgUrl?: string;
+  img_url?: string;
 }
 
 export interface Selection {
@@ -29,11 +32,11 @@ export interface Selection {
 }
 
 // This method will fetch all the books for the currently logged
-export async function getAllBooks(user: User) {
+export async function getAllBooks(session: Session) {
   const response = await fetch(backendURL + `/books`, {
     method: "GET",
     headers: {
-      Authorization: `Bearer ${user.accessToken}`,
+      Authorization: `Bearer ${session.access_token}`,
     },
   });
 
@@ -49,11 +52,11 @@ export async function getAllBooks(user: User) {
 }
 
 // This method will fetch the book by bookId
-export async function getBookByBookId(user: User, bookId: string) {
+export async function getBookByBookId(session: Session, bookId: string) {
   let response = await fetch(backendURL + `/book/${bookId}`, {
     method: "GET",
     headers: {
-      Authorization: `Bearer ${user.accessToken}`,
+      Authorization: `Bearer ${session.access_token}`,
     },
   });
 
@@ -67,12 +70,12 @@ export async function getBookByBookId(user: User, bookId: string) {
 }
 
 // This method will upload the book to S3 and metadata to mongoDB
-export async function uploadBookToDB(user: User, bookData: any) {
+export async function uploadBookToDB(session: Session, bookData: any) {
   const response = await fetch(backendURL + `/book`, {
     method: "POST",
     body: bookData,
     headers: {
-      Authorization: `Bearer ${user.accessToken}`,
+      Authorization: `Bearer ${session.access_token}`,
     },
   });
 
@@ -88,11 +91,11 @@ export async function uploadBookToDB(user: User, bookData: any) {
 }
 
 // This method will get book details from mongoDB
-export async function getBookMetaData(user: User, bookId: string) {
+export async function getBookMetaData(session: Session, bookId: string) {
   const response = await fetch(backendURL + `/book/info/${bookId}`, {
     method: "GET",
     headers: {
-      Authorization: `Bearer ${user.accessToken}`,
+      Authorization: `Bearer ${session.access_token}`,
     },
   });
 
@@ -105,11 +108,11 @@ export async function getBookMetaData(user: User, bookId: string) {
 }
 
 // This method will delete the book from both S3 and mongoDB
-export async function deleteUserSelectedBook(user: User, bookId: string) {
+export async function deleteUserSelectedBook(session: Session, bookId: string) {
   const response = await fetch(backendURL + `/book/${bookId}`, {
     method: "DELETE",
     headers: {
-      Authorization: `Bearer ${user.accessToken}`,
+      Authorization: `Bearer ${session.access_token}`,
     },
   });
 
@@ -125,11 +128,11 @@ export async function deleteUserSelectedBook(user: User, bookId: string) {
 }
 
 // This method will get all the highlights for the user selected book
-export async function getAllHighlightsByBookId(user: User, bookId: string) {
+export async function getAllHighlightsByBookId(session: Session, bookId: string) {
   const response = await fetch(backendURL + `/book/${bookId}/highlights`, {
     method: "GET",
     headers: {
-      Authorization: `Bearer ${user.accessToken}`,
+      Authorization: `Bearer ${session.access_token}`,
     },
   });
 
@@ -147,7 +150,7 @@ export async function getAllHighlightsByBookId(user: User, bookId: string) {
 
 // Delete highlight function
 export async function deleteHighlight(
-  user: User,
+  session: Session,
   bookId: string,
   highlightId: string
 ) {
@@ -157,7 +160,7 @@ export async function deleteHighlight(
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${user.accessToken}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
     }
   );
@@ -171,7 +174,7 @@ export async function deleteHighlight(
 
 // Delete highlight function
 export async function deleteHighlightImage(
-  user: User,
+  session: Session,
   bookId: string,
   highlightId: string
 ) {
@@ -179,7 +182,7 @@ export async function deleteHighlightImage(
     `${backendURL}/book/${bookId}/highlight/${highlightId}/image`,
     {
       method: "DELETE",
-      headers: user.authorizationHeaders(),
+      headers: session.authorizationHeaders(),
     }
   );
 
@@ -192,14 +195,14 @@ export async function deleteHighlightImage(
 
 // Generate a new image for a highlight with no image
 export async function generateHighlightImage(
-  user: User,
+  session: Session,
   bookId: string,
   highlightId: string
 ) {
   const url = `${backendURL}/book/${bookId}/highlight/${highlightId}/generate`;
   const response = await fetch(url, {
     method: "POST",
-    headers: user.authorizationHeaders(),
+    headers: session.authorizationHeaders(),
   });
 
   if (response.ok) {
@@ -215,7 +218,7 @@ export async function generateHighlightImage(
 
 // Regenerate the highlight image with a PUT request
 export async function regenerateHighlightImage(
-  user: User,
+  session: Session,
   bookId: string,
   highlightId: string
 ) {
@@ -223,7 +226,7 @@ export async function regenerateHighlightImage(
   const response = await fetch(url, {
     method: "PUT",
     headers: {
-      Authorization: `Bearer ${user.accessToken}`,
+      Authorization: `Bearer ${session.access_token}`,
     },
   });
 
@@ -239,7 +242,7 @@ export async function regenerateHighlightImage(
 
 // Fetch the updated highlight data with a GET request
 export async function fetchUpdatedHighlight(
-  user: User,
+  session: Session,
   bookId: string,
   highlightId: string
 ) {
@@ -247,7 +250,7 @@ export async function fetchUpdatedHighlight(
   const response = await fetch(url, {
     method: "GET",
     headers: {
-      Authorization: `Bearer ${user.accessToken}`,
+      Authorization: `Bearer ${session.access_token}`,
     },
   });
 
@@ -264,26 +267,61 @@ export async function fetchUpdatedHighlight(
 
 // This method will create a new highlight for the user
 export async function createUserHighlight(
-  user: User,
+  session: Session,
   bookId: string,
   selection: Selection
 ) {
   const response = await fetch(backendURL + `/book/${bookId}/highlight`, {
     method: "POST",
     body: JSON.stringify(selection),
-    headers: user.authorizationHeaders(),
+    headers: session.authorizationHeaders(),
   });
 
   if (response.status === 200) {
     // return true;
     return await response.json();
   }
-  else 
+  else
+    return null;
+}
+
+// This method will create a new highlight for the user
+export async function visualizeHighlight(
+  session: Session,
+  bookId: string,
+  selection: Selection
+) {
+
+  // const url = `http://localhost:8000/book/${bookId}/highlight?image=true`;
+
+  // const response = await fetch(backendURL + `/book/${bookId}/highlight?image=true`, {
+  // // const response = await fetch(url, {
+  //   method: "POST",
+  //   body: JSON.stringify(selection),
+  //   headers: user.authorizationHeaders(),
+  // });
+
+  console.log(JSON.stringify(selection));
+
+  const response = await fetch(backendURL + `/book/${bookId}/highlight?image=true`, {
+    method: "POST",
+    body: JSON.stringify(selection),
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      "Content-Type": "application/json"
+    }
+  });
+
+  if (response.status === 200) {
+    // return true;
+    return await response.json();
+  }
+  else
     return null;
 }
 
 export async function updateBookSettings(
-  user: User,
+  session: Session,
   bookId: string,
   settings: { font_size: string; dark_mode: boolean }
 ) {
@@ -291,7 +329,7 @@ export async function updateBookSettings(
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${user.accessToken}`,
+      Authorization: `Bearer ${session.access_token}`,
     },
     body: JSON.stringify(settings),
   });
@@ -303,12 +341,12 @@ export async function updateBookSettings(
 }
 
 // Fetch the settings for a specific book
-export async function getBookSettings(user: User, bookId: string) {
+export async function getBookSettings(session: Session, bookId: string) {
   try {
     const response = await fetch(`${backendURL}/book/${bookId}/settings`, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${user.accessToken}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
     });
 
@@ -327,7 +365,7 @@ export async function getBookSettings(user: User, bookId: string) {
 }
 
 export async function createCustomImage(
-  user: User,
+  session: Session,
   bookId: string,
   highlightId: string,
   customText: string
@@ -338,7 +376,7 @@ export async function createCustomImage(
       method: "PUT",
       body: JSON.stringify(customText),
       headers: {
-        Authorization: `Bearer ${user.accessToken}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
     }
   );

@@ -17,7 +17,7 @@ class Highlight(BaseModel):
 
     def create_highlight(self, image: bool = False) -> Dict:
 
-        if not self.text or not self.id or not self.owner_id or not self.book_id: 
+        if not self.text or not self.id or not self.owner_id or not self.book_id:
             return {}
 
         self.imgUrl = generate_image(self.text, self.owner_id, self.id, self.book_id) if image else None
@@ -32,7 +32,7 @@ class Highlight(BaseModel):
         )
         if result.modified_count == 0:
             raise HTTPException(status_code=404, detail="Failed to add highlight to book")
-        
+
         return {
             "message": "Successfully saved highlight!",
             "highlightId": self.id,
@@ -52,7 +52,7 @@ class Highlight(BaseModel):
             {"_id": self.book_id, "highlights.id": self.id},
             {"highlights.$": 1}
         )
-        
+
         # Delete highlight image from s3 if it exists
         if document and "highlights" in document:
             highlight = document["highlights"][0]
@@ -68,7 +68,7 @@ class Highlight(BaseModel):
         if result.modified_count == 0:
             raise HTTPException(status_code=404, detail="Highlight not found")
 
-    
+
     def get_highlights(self):
         if not self.owner_id:
             raise HTTPException(status_code=404, detail="Missing owner_id for highlight")
@@ -93,7 +93,7 @@ class Highlight(BaseModel):
             raise HTTPException(status_code=404, detail="Book not found")
 
         highlight_data = next((h for h in book_metadata.get("highlights", []) if h["id"] == self.id), None)
-        
+
         if not highlight_data:
             raise HTTPException(status_code=404, detail="Highlight not found")
 

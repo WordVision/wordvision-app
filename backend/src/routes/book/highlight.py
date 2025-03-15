@@ -29,10 +29,12 @@ class CreateHighlight(BaseModel):
 # POST /book/:id/highlight - Add a highlight to the book's metadata
 @router.post("/highlight", tags=["highlight"])
 async def add_book_highlight(request: Request, book_id: str, body: CreateHighlight, image: bool = False):
-    owner_id = request.state.user["id"]
+    # owner_id = request.state.user["id"]
 
     # Call create_highlight from Highlight model
-    highlight = Highlight(text=body.text, location=body.location, book_id=book_id, owner_id=owner_id)
+    # highlight = Highlight(text=body.text, location=body.location, book_id=book_id, owner_id=owner_id)
+    # print(body.text)
+    highlight = Highlight(text=body.text, location=body.location, book_id="the_count_of_monte_cristo", owner_id="books")
     return highlight.create_highlight(image)
 
 
@@ -59,7 +61,7 @@ async def get_all_highlights(request: Request, book_id: str):
 async def get_book_highlight(request: Request, book_id: str, highlight_id: str):
     owner_id = request.state.user["id"]
 
-    # Instantiate a Highlight object with bookId, ownerId, and highlight_id 
+    # Instantiate a Highlight object with bookId, ownerId, and highlight_id
     highlight_instance = Highlight(id=highlight_id, book_id=book_id, owner_id=owner_id)
     highlight = highlight_instance.get_highlight_by_id()
 
@@ -83,23 +85,23 @@ async def delete_highlight(request: Request, book_id: str, highlightid: str):
 
 @router.put("/highlight/{highlight_id}", tags=["highlight"])
 async def regenerate_highlight_image(
-    request: Request, 
-    book_id: str, 
-    highlight_id: str, 
+    request: Request,
+    book_id: str,
+    highlight_id: str,
     new_text: str = Body(None)
 ):
     owner_id = request.state.user["id"]
-    
+
     # Query the MongoDB for the book document and find the highlight by ID
     collection = get_mongodb_collection(owner_id)
     book_metadata = collection.find_one({"_id": book_id})
-    
+
     if not book_metadata:
         raise HTTPException(status_code=404, detail="Book not found")
-    
+
     # Extract the highlight data based on highlight_id
     highlight_data = next(
-        (highlight for highlight in book_metadata.get("highlights", []) if highlight["id"] == highlight_id), 
+        (highlight for highlight in book_metadata.get("highlights", []) if highlight["id"] == highlight_id),
         None
     )
     if not highlight_data:
@@ -132,7 +134,7 @@ async def regenerate_highlight_image(
     return JSONResponse(
         status_code=200,
         content={
-            "message": "Image successfully regenerated and overwritten in S3." if image_exists 
+            "message": "Image successfully regenerated and overwritten in S3." if image_exists
                        else "Image successfully generated and uploaded to S3.",
             "highlight_id": highlight_id,
             "imgUrl": img_url,
@@ -143,17 +145,17 @@ async def regenerate_highlight_image(
 @router.post("/highlight/{highlight_id}/generate", tags=["highlight"])
 async def generate_new_image(request: Request, book_id: str, highlight_id: str):
     owner_id = request.state.user["id"]
-    
+
     # Query the MongoDB for the book document and find the highlight by ID
     collection = get_mongodb_collection(owner_id)
     book_metadata = collection.find_one({"_id": book_id})
-    
+
     if not book_metadata:
         raise HTTPException(status_code=404, detail="Book not found")
-    
+
     # Extract the highlight data based on highlight_id
     highlight_data = next(
-        (highlight for highlight in book_metadata.get("highlights", []) if highlight["id"] == highlight_id), 
+        (highlight for highlight in book_metadata.get("highlights", []) if highlight["id"] == highlight_id),
         None
     )
     if not highlight_data:
@@ -163,16 +165,16 @@ async def generate_new_image(request: Request, book_id: str, highlight_id: str):
     prompt = highlight_data.get("text")
     if not prompt:
         raise HTTPException(status_code=500, detail="Highlight text is missing")
-    
+
     s3_key = f"{owner_id}/{book_id}/images/{highlight_id}.png"
     img_url = generate_image(prompt, owner_id, highlight_id, book_id)
-    
+
     # Update the highlight in MongoDB with the new imgUrl
     collection.update_one(
         {"_id": book_id, "highlights.id": highlight_id},
         {"$set": {"highlights.$.imgUrl": img_url}}
     )
-    
+
     return JSONResponse(
         status_code=200,
         content={"message": "Image successfully generated.", "imgUrl": img_url}

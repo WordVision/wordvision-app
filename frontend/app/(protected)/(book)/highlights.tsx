@@ -14,7 +14,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { FlatList } from "react-native-gesture-handler";
 
-import { RootStackParamList } from "./types";
+// import { RootStackParamList } from "../(home)/(tabs)/types.ts.bk";
 
 import Loading from "@/components/Loading";
 import { AuthContext, type User } from "@/utilities/authContext";
@@ -26,7 +26,7 @@ import {
 } from "@/utilities/backendService";
 import { HighlightContext } from "@/utilities/highlightContext";
 
-export default function ShowBookHighlights() {
+export default function BookHighlightsPage() {
   const user = useContext(AuthContext) as User;
 
   const route = useRoute();
@@ -42,7 +42,10 @@ export default function ShowBookHighlights() {
 
   const [loading, setLoading] = useState(false); // Loading indicator
   const [error, setError] = useState<string | null>(null); // Error handling
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+
+  // const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation();
+
   const { bookId } = route.params as { bookId: string };
   const backendURL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
 

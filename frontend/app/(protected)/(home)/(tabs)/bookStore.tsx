@@ -7,6 +7,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BottomTabNavigationOptions } from "@react-navigation/bottom-tabs";
 import { useNavigation } from "@react-navigation/native";
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
+import { supabase } from "@/lib/supabase";
 
 interface Book {
   id: string;
@@ -55,12 +56,28 @@ export default function BookStore() {
 
     console.log(`Adding book to library: ${book.title} (ID: ${book.id})`);
 
-    // Simulate adding the book and updating the cache
-    const updatedLibrary = [...userLibrary, book.id];
-    await AsyncStorage.setItem("userLibrary", JSON.stringify(updatedLibrary));
+    try {
+      // ✅ Insert into Supabase
+      const { error } = await supabase
+        .from("user_books")
+        .insert([{ user_id: session.user.id, book_id: book.id }]);
 
-    // Refresh user books in context
-    await fetchUserLibrary(session.user.id);
+      if (error) {
+        console.error("Supabase insert error:", error);
+        return;
+      }
+
+      console.log("Book successfully added to Supabase!");
+
+      // Update local cache
+      const updatedLibrary = [...userLibrary, book.id];
+      await AsyncStorage.setItem("userLibrary", JSON.stringify(updatedLibrary));
+
+      // Refresh user books in context
+      await fetchUserLibrary(session.user.id);
+    } catch (err) {
+      console.error("Error adding book:", err);
+    }
   };
 
   return (

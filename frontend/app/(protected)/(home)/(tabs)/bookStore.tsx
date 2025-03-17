@@ -27,7 +27,7 @@ export default function BookStore() {
 
   useEffect(() => {
     navigation.setOptions({
-      title: "Library",
+      title: "Book Store",
       tabBarIcon: ({ color, focused }) => (
         <TabBarIcon name={focused ? "cart" : "cart-outline"} color={color} />
       ),

@@ -39,9 +39,6 @@ import {
 import Loading from "@/components/Loading";
 import { HighlightContext } from "@/utilities/highlightContext";
 
-// import type { StackNavigationProp } from "@react-navigation/stack";
-// import { RootStackParamList } from "@/app/(protected)/(home)/(tabs)/types.ts.bk"; // Adjust this path to match your project structure
-
 import { useAuth } from "@/utilities/authProvider";
 import { useReader, Reader, Annotation } from "@epubjs-react-native/core";
 import { useFileSystem } from '@epubjs-react-native/expo-file-system';
@@ -60,13 +57,6 @@ import {
 } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-
-// Explicitly type navigation as a stack navigator
-// type BookReaderScreenNavigationProp = StackNavigationProp<
-//   RootStackParamList,
-//   "bookReader"
-// >;
-
 export default function BookReaderPage() {
   const user = useContext(AuthContext) as User;
 
@@ -83,14 +73,12 @@ export default function BookReaderPage() {
     section,
   } = useReader();
 
-  const { session } = useAuth();
-
   const [ selectedAnnotation, setSelectedAnnotation ] = useState<Annotation | null>(null);
   const [ annotations, setAnnotations ] = useState<Annotation[]>([]);
 
   const { highlights, setHighlights } = useContext(HighlightContext);
 
-  const ctxMenuRef = useRef<any>(null);
+  // const ctxMenuRef = useRef<any>(null);
 
   // const route = useRoute();
   //
@@ -100,15 +88,15 @@ export default function BookReaderPage() {
   // };
 
 
-  // const navigation = useNavigation<BookReaderScreenNavigationProp>(); // nav
 
-  const [location, setLocation] = useState<string | number>(0);
+  // const [location, setLocation] = useState<string | number>(0);
+
   const [bookUrl, setBookUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
-  const [custompromptModelVisible, setCustomPromptModelVisible] =
-    useState<boolean>(false);
+
+  const [custompromptModelVisible, setCustomPromptModelVisible] = useState<boolean>(false);
   const [imageModalVisible, setImageModalVisible] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<boolean>(false);
   const [saveMessage, setSaveMessage] = useState<string>("Saving highlight...");
@@ -138,7 +126,7 @@ export default function BookReaderPage() {
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
   const navigation = useNavigation();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
-  const snapPoints = useMemo(() => ['50%', '90%'], []);
+  const snapPoints = useMemo(() => ['70%', '100%'], []);
 
 
   // Navigation options as a stack child
@@ -828,9 +816,16 @@ export default function BookReaderPage() {
             showsVerticalScrollIndicator={false}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <TouchableOpacity
+              <Pressable
                 key={item.id}
-                style={styles.container}
+                style={({pressed}) => ({
+                  backgroundColor: pressed ? "#fff" : "#dbdbdb",
+                  marginVertical: 2,
+                  marginHorizontal: 24,
+                  paddingVertical: 8,
+                  paddingHorizontal: 16,
+                  borderRadius: 5
+                })}
                 onPress={() => {
                   goToLocation(item.href.split('/')[1])
                   bottomSheetRef.current?.dismiss();
@@ -839,24 +834,35 @@ export default function BookReaderPage() {
                 <View>
                   <Text
                     style={{
-                      color: section?.id === item?.id
+                      color: section?.id === item.id
                         ? "red"
-                        : "blue",
+                        : "black",
                     }}
                   >
-                    {item?.label}
+                    {item.label}
                   </Text>
                 </View>
-              </TouchableOpacity>
+              </Pressable>
             )}
             ListHeaderComponent={
-              <View style={styles.title}>
-                <Text >
+              <View style={{
+                width: '100%',
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginVertical: 10,
+                paddingHorizontal: 24
+              }}>
+                <Text style={{
+                  fontSize: 24
+                }}>
                   Table of Contents
                 </Text>
 
                 <Pressable onPress={() => {bottomSheetRef.current?.dismiss()}}>
-                  <Text>Close</Text>
+                  <Text style={{
+                    fontSize: 16
+                  }}>Close</Text>
                 </Pressable>
               </View>
             }

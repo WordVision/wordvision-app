@@ -9,13 +9,8 @@ import {
   Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-// import { StackNavigationProp } from "@react-navigation/stack";
-
-// import { RootStackParamList } from "./types.ts.bk"; // Import your defined types
 import Loading from "@/components/Loading";
 import { BookContext } from "@/utilities/bookContext";
-import { getAllBooks, uploadBookToDB, Book } from "@/utilities/backendService";
-import { useAuth } from "@/utilities/authProvider";
 import { supabase } from "@/lib/supabase";
 import { RefreshControl } from "react-native-gesture-handler";
 import { ThemedText } from "@/components/ThemedText";
@@ -24,7 +19,6 @@ import { BottomTabNavigationOptions } from "@react-navigation/bottom-tabs";
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 
 export default function BookStore() {
-  const { session } = useAuth();
   const { books, setBooks } = useContext(BookContext);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -51,7 +45,7 @@ export default function BookStore() {
     console.log({ error });
 
     if (data) {
-      setBooks(books);
+      setBooks(data);
     } else {
       setBooks([]);
       console.error("Error fetching books:", error);

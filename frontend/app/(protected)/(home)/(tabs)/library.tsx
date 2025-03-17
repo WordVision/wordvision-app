@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import {
   StyleSheet,
   Image,
@@ -8,7 +8,7 @@ import {
   FlatList,
   Alert,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 // import { StackNavigationProp } from "@react-navigation/stack";
 
 // import { RootStackParamList } from "./types.ts.bk"; // Import your defined types
@@ -20,11 +20,10 @@ import { supabase } from "@/lib/supabase";
 import { RefreshControl } from "react-native-gesture-handler";
 import { ThemedText } from "@/components/ThemedText";
 import { useRouter } from "expo-router";
-import { BottomTabNavigationOptions } from "@react-navigation/bottom-tabs"
+import { BottomTabNavigationOptions } from "@react-navigation/bottom-tabs";
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 
 export default function LibraryScreen() {
-
   const { session } = useAuth();
   const { books, setBooks } = useContext(BookContext);
   const [loading, setLoading] = useState<boolean>(true);
@@ -37,82 +36,84 @@ export default function LibraryScreen() {
     navigation.setOptions({
       title: "Library",
       tabBarIcon: ({ color, focused }) => (
-        <TabBarIcon
-          name={focused ? "book" : "book-outline"}
-          color={color}
-        />
+        <TabBarIcon name={focused ? "book" : "book-outline"} color={color} />
       ),
     } as BottomTabNavigationOptions);
   }, [navigation]);
 
+  useFocusEffect(
+    useCallback(() => {
+      fetchBooks();
+    }, [])
+  );
+
   const fetchBooks = async () => {
     const { data, error } = await supabase
-      .from('books')
-      .select(`
+      .from("books")
+      .select(
+        `
         id, title, author, img_url,
         user_books!inner()
-      `)
-      .eq('user_books.user_id', session?.user.id);
+      `
+      )
+      .eq("user_books.user_id", session?.user.id);
 
-    console.log({data});
-    console.log({error});
+    console.log({ data });
+    console.log({ error });
 
     if (data) {
-      const books: Book[] = data.map(book => {
+      const books: Book[] = data.map((book) => {
         delete book.user_books;
         return book;
-      })
+      });
 
       setBooks(books);
-    }
-    else {
+    } else {
       setBooks([]);
       console.error("Error fetching books:", error);
       Alert.alert("Error", "An error occurred while fetching books.");
     }
 
     setLoading(false);
-  }
+  };
 
   useEffect(() => {
-    fetchBooks()
+    fetchBooks();
   }, []);
 
   if (loading) {
-    return <Loading message="Loading books..." />
+    return <Loading message="Loading books..." />;
   }
 
   return (
     <View style={styles.container}>
       <FlatList
         data={books}
-
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={fetchBooks}/>
+          <RefreshControl refreshing={loading} onRefresh={fetchBooks} />
         }
-
         ListEmptyComponent={
-          <View style={{
-            flex: 1,
-            justifyContent: "center",
-          }}>
-            <ThemedText style={{ textAlign:"center" }}>
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "center",
+            }}
+          >
+            <ThemedText style={{ textAlign: "center" }}>
               You have no books...
             </ThemedText>
           </View>
         }
-
         renderItem={({ item }) => (
           <TouchableOpacity
             onPress={() => {
               // navigation.navigate("bookDetails", { bookId: item.id }); // Navigate to book details
-              router.push(`/(protected)/(book)/bookDetails?bookId=${item.id}`, );
-
+              router.push(`/(protected)/(book)/bookDetails?bookId=${item.id}`);
             }}
             style={styles.cardContainer}
           >
             <View style={styles.card}>
-              {item.img_url ?
+              {item.img_url ? (
                 <Image
                   source={{
                     uri: item.img_url || "https://placehold.co/100x150",
@@ -120,16 +121,15 @@ export default function LibraryScreen() {
                   style={styles.bookImage}
                   resizeMode="contain"
                 />
-                :
+              ) : (
                 <View style={styles.cardContent}>
                   <Text style={styles.bookTitle}>{item.title}</Text>
                   <Text style={styles.bookAuthor}>{item.author}</Text>
                 </View>
-              }
+              )}
             </View>
           </TouchableOpacity>
         )}
-
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.cardList}
         numColumns={2}

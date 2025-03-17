@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import {
   StyleSheet,
   Image,
@@ -8,7 +8,7 @@ import {
   FlatList,
   Alert,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import Loading from "@/components/Loading";
 import { BookContext } from "@/utilities/bookContext";
 import { supabase } from "@/lib/supabase";
@@ -33,6 +33,12 @@ export default function BookStore() {
       ),
     } as BottomTabNavigationOptions);
   }, [navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchBooks();
+    }, [])
+  );
 
   const fetchBooks = async () => {
     const { data, error } = await supabase.from("books").select(

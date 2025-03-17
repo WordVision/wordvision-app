@@ -15,14 +15,10 @@ export default function TabLayout() {
       drawerLabel: "Home",
       title: "WordVision",
       drawerIcon: ({ color, focused }) => (
-        <TabBarIcon
-          name={focused ? "book" : "book-outline"}
-          color={color}
-        />
+        <TabBarIcon name={focused ? "book" : "book-outline"} color={color} />
       ),
     } as DrawerNavigationOptions);
   }, [navigation]);
-
 
   return (
     <Tabs
@@ -30,6 +26,33 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
         headerShown: false,
       }}
-    />
+    >
+      <Tabs.Screen
+        name="bookStore"
+        options={{
+          title: "Book Store",
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon
+              name={focused ? "cart" : "cart-outline"}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      {/* Library Appears Second */}
+      <Tabs.Screen
+        name="library"
+        options={{
+          title: "Library",
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon
+              name={focused ? "book" : "book-outline"}
+              color={color}
+            />
+          ),
+        }}
+      />
+    </Tabs>
   );
 }

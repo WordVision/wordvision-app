@@ -8,6 +8,7 @@ import {
   FlatList,
   Alert,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import Loading from "@/components/Loading";
 import { BookContext } from "@/utilities/bookContext";
@@ -17,10 +18,15 @@ import { ThemedText } from "@/components/ThemedText";
 import { useRouter } from "expo-router";
 import { BottomTabNavigationOptions } from "@react-navigation/bottom-tabs";
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
+import ConfirmationModal from "@/components/ConfirmationModal";
+import { useAuth } from "@/utilities/authProvider";
 
 export default function BookStore() {
   const { books, setBooks } = useContext(BookContext);
   const [loading, setLoading] = useState<boolean>(true);
+  const { session } = useAuth();
+  const [selectedBook, setSelectedBook] = useState<{ id: string } | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const navigation = useNavigation();
   const router = useRouter();
@@ -39,6 +45,23 @@ export default function BookStore() {
       fetchBooks();
     }, [])
   );
+
+  const handleAddBook = async () => {
+    if (!selectedBook || !session?.user?.id) return;
+
+    const { error } = await supabase
+      .from("user_books")
+      .insert([{ user_id: session.user.id, book_id: selectedBook?.id }]);
+
+    if (error) {
+      Alert.alert("Error", "Failed to add book to library.");
+      console.error("Insert error:", error);
+    } else {
+      Alert.alert("Success", "Book added to your library!");
+    }
+
+    setModalVisible(false);
+  };
 
   const fetchBooks = async () => {
     const { data, error } = await supabase.from("books").select(
@@ -111,6 +134,22 @@ export default function BookStore() {
                   <Text style={styles.bookAuthor}>{item.author}</Text>
                 </View>
               )}
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedBook({ id: item.id });
+                  setModalVisible(true);
+                }}
+                style={styles.addButton}
+              >
+                <Ionicons name="add-circle-outline" size={24} color="blue" />
+              </TouchableOpacity>
+
+              <ConfirmationModal
+                visible={modalVisible}
+                message="Would you like to add this book to your library?"
+                onConfirm={handleAddBook}
+                onCancel={() => setModalVisible(false)}
+              />
             </View>
           </TouchableOpacity>
         )}
@@ -254,5 +293,15 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "bold",
     textAlign: "center",
+  },
+
+  addButton: {
+    position: "absolute",
+    bottom: 5,
+    right: 5,
+    backgroundColor: "white",
+    borderRadius: 50,
+    padding: 4,
+    elevation: 3,
   },
 });

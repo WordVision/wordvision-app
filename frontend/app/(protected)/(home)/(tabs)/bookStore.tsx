@@ -4,6 +4,9 @@ import BookList from "@/components/BookList";
 import { useAuth } from "@/utilities/authProvider";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { BottomTabNavigationOptions } from "@react-navigation/bottom-tabs";
+import { useNavigation } from "@react-navigation/native";
+import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 
 interface Book {
   id: string;
@@ -16,10 +19,20 @@ export default function BookStore() {
   const { books, userLibrary, fetchBooks, fetchUserLibrary } = useBooks();
   const { session } = useAuth();
   const [loading, setLoading] = useState(true);
+  const navigation = useNavigation();
 
   useFocusEffect(() => {
     checkAndFetchData();
   });
+
+  useEffect(() => {
+    navigation.setOptions({
+      title: "Library",
+      tabBarIcon: ({ color, focused }) => (
+        <TabBarIcon name={focused ? "cart" : "cart-outline"} color={color} />
+      ),
+    } as BottomTabNavigationOptions);
+  }, [navigation]);
 
   const checkAndFetchData = async () => {
     const cachedBooks = await AsyncStorage.getItem("books");

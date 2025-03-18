@@ -24,15 +24,15 @@ import {
 } from "@/utilities/backendService";
 import { useAuth } from "@/utilities/authProvider";
 import { supabase } from "@/lib/supabase";
+import { useBooks } from "@/contexts/BookContext";
 
 export default function BookDetailsPage() {
-
   const user = useContext(AuthContext) as User;
   const { session } = useAuth();
-
+  const { userLibrary, fetchUserLibrary } = useBooks();
   const { setBooks } = useContext(BookContext);
 
-  const [book, setBook] = useState<Book | null>(null);
+  const [book, setBook] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState("");
   const [isStarred, setIsStarred] = useState(false);
@@ -41,10 +41,18 @@ export default function BookDetailsPage() {
   const [modelVisible, setModelVisible] = useState(false);
   const [deletingBook, setDeletingBook] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
+  const [isOwned, setIsOwned] = useState(false);
 
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
   const navigation = useNavigation();
   const router = useRouter();
+
+  // Ensure `isOwned` updates when `userLibrary` changes
+  useEffect(() => {
+    if (book) {
+      setIsOwned(userLibrary.includes(book.id));
+    }
+  }, [userLibrary, book]);
 
   // Navigation options as a stack child
   useEffect(() => {
@@ -52,68 +60,91 @@ export default function BookDetailsPage() {
       headerShown: true,
       title: "Book Details",
       headerRight: () => (
-        <Link href={{
-          pathname: "/(protected)/(book)/bookReader",
-          params: { bookId }
-        }} asChild>
-          <TouchableOpacity>
-            <Text style={styles.readButton}>Read</Text>
-          </TouchableOpacity>
-        </Link>
+        <View>
+          {isOwned ? (
+            <TouchableOpacity
+              onPress={() =>
+                router.push(`/(protected)/(book)/bookReader?bookId=${book.id}`)
+              }
+            >
+              <Text style={styles.readButton}>Read</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={handleAddBook}>
+              <Icon style={styles.readButton} name="plus" size={24} />
+            </TouchableOpacity>
+          )}
+        </View>
       ),
     });
-  }, [navigation]);
-
+  }, [navigation, isOwned]);
 
   useEffect(() => {
     const fetchBookDetails = async () => {
       setLoading(true);
 
-      console.log(bookId)
+      console.log(bookId);
 
       const { data, error } = await supabase
-        .from('books')
+        .from("books")
         .select()
-        .eq('id', bookId)
+        .eq("id", bookId)
         .limit(1)
         .single();
 
-      console.log({data});
+      console.log({ data });
 
       if (data) {
         setBook(data);
-      }
-      else {
-        Alert.alert("Error", `An error occurred while fetching book details: ${error?.message}`);
+        setIsOwned(userLibrary.includes(data.id));
+      } else {
+        Alert.alert(
+          "Error",
+          `An error occurred while fetching book details: ${error?.message}`
+        );
       }
 
       setLoading(false);
     };
 
-    // const fetchStoredData = async () => {
-    //   try {
-    //     const storedNotes = await AsyncStorage.getItem(`notes_${bookId}`);
-    //     if (storedNotes) setNotes(storedNotes);
-    //
-    //     const storedStarred = await AsyncStorage.getItem(`isStarred_${bookId}`);
-    //     if (storedStarred) setIsStarred(JSON.parse(storedStarred));
-    //
-    //     const storedClocked = await AsyncStorage.getItem(`isClocked_${bookId}`);
-    //     if (storedClocked) setIsClocked(JSON.parse(storedClocked));
-    //
-    //     const storedChecked = await AsyncStorage.getItem(`isChecked_${bookId}`);
-    //     if (storedChecked) setIsChecked(JSON.parse(storedChecked));
-    //   } catch (error) {
-    //     console.error("Failed to load data from AsyncStorage:", error);
-    //   }
-    // };
-
     fetchBookDetails();
-    // fetchStoredData();
-  }, [bookId]);
+  }, [bookId, userLibrary]);
+
+  const handleAddBook = async () => {
+    if (!session?.user?.id || !book?.id) {
+      console.error("User or Book ID is missing!");
+      return;
+    }
+
+    console.log(`Adding book to library: ${book.title} (ID: ${book.id})`);
+
+    try {
+      // Insert into Supabase
+      const { error } = await supabase
+        .from("user_books")
+        .insert([{ user_id: session.user.id, book_id: book.id }]);
+
+      if (error) {
+        console.error("Supabase insert error:", error);
+        return;
+      }
+
+      console.log("Book successfully added to Supabase!");
+
+      // Update local cache
+      const updatedLibrary = [...userLibrary, book.id];
+      await AsyncStorage.setItem("userLibrary", JSON.stringify(updatedLibrary));
+
+      // Refresh user books in context
+      await fetchUserLibrary(session.user.id);
+      setIsOwned(true);
+    } catch (err) {
+      console.error("Error adding book:", err);
+    }
+  };
 
   if (loading) {
-    return <Loading message="Loading book details..."/>;
+    return <Loading message="Loading book details..." />;
   }
 
   if (!book) {
@@ -193,8 +224,7 @@ export default function BookDetailsPage() {
 
   return (
     <View style={styles.container}>
-
-    {/*
+      {/*
 
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -268,7 +298,6 @@ export default function BookDetailsPage() {
         <Text style={styles.bookAuthor}>by {book.author}</Text>
 
         <View style={styles.actionIcons}>
-
           {/*
 
           <TouchableOpacity onPress={toggleStar}>
@@ -357,7 +386,6 @@ export default function BookDetailsPage() {
       </View>
 
       */}
-
     </View>
   );
 }

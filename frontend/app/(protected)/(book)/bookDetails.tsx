@@ -77,7 +77,7 @@ export default function BookDetailsPage() {
         </View>
       ),
     });
-  }, [navigation, isOwned]);
+  }, [navigation, isOwned, book]);
 
   useEffect(() => {
     const fetchBookDetails = async () => {

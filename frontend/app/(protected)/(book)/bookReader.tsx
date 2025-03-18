@@ -11,6 +11,7 @@ import {
   TextInput,
   Pressable,
   Button,
+  useColorScheme,
 } from "react-native";
 import { ReactReader } from "react-reader";
 import { useRoute } from "@react-navigation/native";
@@ -47,7 +48,7 @@ import { supabase } from "@/lib/supabase";
 import { File, Paths, Directory } from 'expo-file-system/next';
 import { Link, useLocalSearchParams } from "expo-router";
 
-import { Entypo } from '@expo/vector-icons';
+import { Entypo, FontAwesome5 } from '@expo/vector-icons';
 
 import {
   BottomSheetModal,
@@ -56,6 +57,8 @@ import {
   BottomSheetTextInput,
 } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { TableOfContents } from "@/components/TableOfContents";
+import { HighlightsList } from "@/components/HighlightsList";
 
 export default function BookReaderPage() {
   const user = useContext(AuthContext) as User;
@@ -125,8 +128,12 @@ export default function BookReaderPage() {
 
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
   const navigation = useNavigation();
-  const bottomSheetRef = useRef<BottomSheetModal>(null);
+
+  const tableOfContentsRef = useRef<BottomSheetModal>(null);
+  const highlightsListRef = useRef<BottomSheetModal>(null);
+
   const snapPoints = useMemo(() => ['70%', '100%'], []);
+  const colorScheme = useColorScheme();
 
 
   // Navigation options as a stack child
@@ -135,16 +142,25 @@ export default function BookReaderPage() {
       title: "Reader",
       headerShown: true,
       headerRight: () => (
-        <Pressable
-          style={({pressed}) => {
-            return {
-              opacity: pressed ? 0.3 : 1
-            }
-          }}
-          onPress={() => bottomSheetRef.current?.present()}
-        >
-          <Entypo name="list" size={24} color="white" />
-        </Pressable>
+        <View style={{
+          display: "flex",
+          flexDirection: "row",
+          gap: 16,
+        }}>
+          <Pressable
+            style={({pressed}) => ({ opacity: pressed ? 0.3 : 1 })}
+            onPress={() => highlightsListRef.current?.present()}
+          >
+            <FontAwesome5 name="quote-left" size={20} color={colorScheme === "dark" ? "white" : "black"} />
+          </Pressable>
+
+          <Pressable
+            style={({pressed}) => ({ opacity: pressed ? 0.3 : 1 })}
+            onPress={() => tableOfContentsRef.current?.present()}
+          >
+            <FontAwesome5 name="list-ul" size={20} color={colorScheme === "dark" ? "white" : "black"} />
+          </Pressable>
+        </View>
       ),
     });
   }, [navigation]);
@@ -798,6 +814,25 @@ export default function BookReaderPage() {
           onDismiss={() => setSearchTerm('')}
 */}
 
+      <TableOfContents
+        ref={tableOfContentsRef}
+        onPressSection={(section) => {
+          goToLocation(section.href.split('/')[1]);
+          tableOfContentsRef.current?.dismiss();
+        }}
+        onClose={() => tableOfContentsRef.current?.dismiss()}
+      />
+
+      <HighlightsList
+        ref={highlightsListRef}
+        onPressItem={(annotation) => {
+          goToLocation(annotation.cfiRange);
+          highlightsListRef.current?.dismiss();
+        }}
+        onClose={() => highlightsListRef.current?.dismiss()}
+      />
+
+{/*
       <BottomSheetModalProvider>
         <BottomSheetModal
           ref={bottomSheetRef}
@@ -871,6 +906,7 @@ export default function BookReaderPage() {
           />
         </BottomSheetModal>
       </BottomSheetModalProvider>
+      */}
 
       {/*
       <TouchableOpacity

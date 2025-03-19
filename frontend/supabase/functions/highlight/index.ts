@@ -1,7 +1,10 @@
-import { HfInference } from "https://esm.sh/@huggingface/inference@2.3.2";
-import { createClient } from "npm:@supabase/supabase-js";
+import { HfInference } from "@huggingface/inference";
+import { createClient } from "@supabase/supabase-js";
+import { Redis } from "@upstash/redis";
+import { Ratelimit } from "@upstash/ratelimit";
 
 Deno.serve(async (req: Request) => {
+
   // Get request body data
   const { book_id, text, location, visualize } = await req.json();
 
@@ -14,10 +17,8 @@ Deno.serve(async (req: Request) => {
     },
   );
 
-  // Get user session from auth token
-  const authHeader = req.headers.get("Authorization")!;
-  const token = authHeader.replace("Bearer ", "");
-  const getUserRes = await supabase.auth.getUser(token);
+  // Get user session
+  const getUserRes = await supabase.auth.getUser();
 
   // Handle any auth errors
   if (getUserRes.error) {
@@ -34,6 +35,49 @@ Deno.serve(async (req: Request) => {
 
   // Get user id from session
   const user_id = getUserRes.data.user.id;
+
+  // If the user wants to visualize, check if they are within their allowed quota
+  // Note: We make this check first so that in case they exceeded their limit, the given highlight also doesn't get saved.
+  if (visualize) {
+    const limit: number = 2; // 2 requests
+    const rate: string = "24h"; // per 24 hours
+
+    const redis = new Redis({
+      url: Deno.env.get("UPSTASH_REDIS_REST_URL")!,
+      token: Deno.env.get("UPSTASH_REDIS_REST_TOKEN")!,
+    })
+
+    const ratelimit = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(limit, rate),
+      analytics: true,
+      prefix: "@upstash/ratelimit",
+    });
+
+    const identifier = user_id;
+    const { success } = await ratelimit.limit(identifier);
+    if (!success) {
+
+      const { reset } = await ratelimit.getRemaining(identifier);
+
+      return new Response(JSON.stringify({
+          status: 429,
+          message: `Image generation limit exceeded. You only have ${limit} requests per day`,
+          reset
+        }), {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      )
+    }
+  }
+
+  // ========
+  // If the user DOES NOT want to "visualize" or they are WITHIN their image generation quota, 
+  // the following code will run.
+  // ========
 
   // Save highlight to database
   const saveHighlightRes = await supabase
@@ -77,6 +121,7 @@ Deno.serve(async (req: Request) => {
 
   // if user wants to visualize
   if (visualize) {
+
     // Generate image
     const image = await generateImage(text);
 

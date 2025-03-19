@@ -20,7 +20,6 @@ import Section from "epubjs/types/section";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Feather from "react-native-vector-icons/Feather";
 import { useNavigation } from "@react-navigation/native";
-
 import { AuthContext, type User } from "@/utilities/authContext";
 import {
   type Highlight,
@@ -48,7 +47,7 @@ import { supabase } from "@/lib/supabase";
 import { File, Paths, Directory } from 'expo-file-system/next';
 import { Link, useLocalSearchParams } from "expo-router";
 
-import { Entypo, FontAwesome5 } from '@expo/vector-icons';
+import { FontAwesome5 } from '@expo/vector-icons';
 
 import {
   BottomSheetModal,
@@ -62,7 +61,6 @@ import { HighlightsList } from "@/components/HighlightsList";
 
 export default function BookReaderPage() {
   const user = useContext(AuthContext) as User;
-
 
   const {
     theme,
@@ -89,8 +87,6 @@ export default function BookReaderPage() {
   //   bookId: string;
   //   userHighlight: Highlight;
   // };
-
-
 
   // const [location, setLocation] = useState<string | number>(0);
 
@@ -132,9 +128,7 @@ export default function BookReaderPage() {
   const tableOfContentsRef = useRef<BottomSheetModal>(null);
   const highlightsListRef = useRef<BottomSheetModal>(null);
 
-  const snapPoints = useMemo(() => ['70%', '100%'], []);
   const colorScheme = useColorScheme();
-
 
   // Navigation options as a stack child
   useEffect(() => {
@@ -191,43 +185,44 @@ export default function BookReaderPage() {
         .limit(1)
         .single()
 
-      console.log(database.data);
+      console.log({databaseData: database.data});
 
       if (database.data) {
-
-        const storage = await supabase.storage.from("books").createSignedUrl(database.data.filename, 3600)
-        console.log(storage)
-
-        if (storage.data) {
-          const url = storage.data.signedUrl;
-          const destination = new Directory(Paths.cache, database.data.id);
-
-          try {
-            if (!destination.exists) {
-              destination.create();
-            }
-
-            const file = new File(Paths.cache, database.data.id, database.data.filename);
-
-            if (!file.exists) {
-              console.log("Downloading Book...")
-              const output = await File.downloadFileAsync(url, destination);
-              if (output.exists) console.log("Book downloaded!")
-            }
-            else {
-              console.log("Found downloaded book.")
-            }
-
-            console.log(file.uri);
-            setBookUrl(file.uri);
-          }
-          catch (error) {
-            console.error(error);
-          }
+        const file = new File(Paths.cache, database.data.id, database.data.filename);
+        if (file.exists) {
+          console.log("Found downloaded book.")
+          console.log({file: file.uri})
+          setBookUrl(file.uri);
         }
         else {
-          console.error("Error fetching book from storage:", storage.error);
-          setError("Error fetching book.");
+          const destination = new Directory(Paths.cache, database.data.id);
+          if (!destination.exists) {
+            destination.create();
+          }
+
+          const storage = await supabase.storage.from("books").createSignedUrl(database.data.filename, 3600)
+          console.log({storage})
+
+          if (storage.data) {
+
+            const url = storage.data.signedUrl;
+            console.log("Downloading Book...")
+
+            try {
+              const output = await File.downloadFileAsync(url, destination);
+              if (output.exists) {
+                console.log("Book downloaded!")
+                setBookUrl(output.uri);
+              }
+            }
+            catch (error) {
+              console.error(error);
+            }
+          }
+          else {
+            console.error("Error fetching book from storage:", storage.error);
+            setError("Error fetching book.");
+          }
         }
 
         if (database.data.highlights.length > 0) {
@@ -270,6 +265,7 @@ export default function BookReaderPage() {
     // };
 
     fetchBook();
+
     // fetchSettings();
   }, [bookId, user]);
 
@@ -713,67 +709,65 @@ export default function BookReaderPage() {
   }
 
 
-
   return (
     <GestureHandlerRootView>
-    <View style={{ flex: 1 }}>
-
-        {/*
-        <ReactReader
-          url={bookUrl}
-          epubInitOptions={{ openAs: "epub" }}
-          location={location}
-          locationChanged={(epubcfi: string) => setLocation(epubcfi)}
-          getRendition={(rendition: Rendition) => {
-            setRendition(rendition);
-            // Apply settings on book render
-            rendition.themes.fontSize(`${fontSize}px`);
-            rendition.themes.register("custom", {
-              "html, body": {
-                color: isDarkMode ? "#FFFFFF" : "#000000",
-                background: isDarkMode ? "#000000" : "#FFFFFF",
-              },
-            });
-            rendition.themes.select("custom");
-          }}
-        />
+      <View style={{ flex: 1 }}>
+{/*
+          <ReactReader
+            url={bookUrl}
+            epubInitOptions={{ openAs: "epub" }}
+            location={location}
+            locationChanged={(epubcfi: string) => setLocation(epubcfi)}
+            getRendition={(rendition: Rendition) => {
+              setRendition(rendition);
+              // Apply settings on book render
+              rendition.themes.fontSize(`${fontSize}px`);
+              rendition.themes.register("custom", {
+                "html, body": {
+                  color: isDarkMode ? "#FFFFFF" : "#000000",
+                  background: isDarkMode ? "#000000" : "#FFFFFF",
+                },
+              });
+              rendition.themes.select("custom");
+            }}
+          />
+          bookUrl
 */}
 
-      {bookUrl ? (
-        <Reader
-          src={bookUrl}
-          fileSystem={useFileSystem}
-          waitForLocationsReady
-          onSelected={(selection, cfiRange) => {
-            setSelection({text: selection, location: cfiRange});
-          }}
-          onPressAnnotation={(annotation) => {
-            setSelectedAnnotation(annotation);
-            setImageModalVisible(true);
-          }}
 
+        {bookUrl ? (
+          <Reader
+            src={bookUrl}
+            fileSystem={useFileSystem}
+            waitForLocationsReady
+            onSelected={(selection, cfiRange) => {
+              setSelection({text: selection, location: cfiRange});
+            }}
+            onPressAnnotation={(annotation) => {
+              setSelectedAnnotation(annotation);
+              setImageModalVisible(true);
+            }}
+            initialAnnotations={annotations}
+            menuItems={[
+              {
+                label: 'Visualize',
+                action: (cfiRange, text) => {
+                  const visualizeHighlight = async (cfiRange: string, text: string) => {
+                    setSaveMessage("Visualizing highlight...");
+                    setModalVisible(true);
 
-          initialAnnotations={annotations}
-          menuItems={[
-            {
-              label: 'Visualize',
-              action: (cfiRange, text) => {
-
-                setSaveMessage("Visualizing highlight...");
-                setModalVisible(true);
-
-                supabase.functions.invoke('highlight', {
-                  body: {
-                    book_id: bookId,
-                    text: text,
-                    location: cfiRange,
-                    visualize: true,
-                  },
-                }).then(({data, error}) => {
-
-                  console.log({data})
+                    const { data, error } = await supabase.functions.invoke('highlight', {
+                      body: {
+                        book_id: bookId,
+                        text: text,
+                        location: cfiRange,
+                        visualize: true,
+                      },
+                    })
 
                     if (data) {
+
+                      console.log("from data", {data, error})
 
                       addAnnotation(
                         'highlight',
@@ -794,332 +788,248 @@ export default function BookReaderPage() {
                       return true;
                     }
                     else {
-                      console.error("Failed to visualize highlight");
+                      if (error.context.status === 429) {
+                        const errData: { status: number, message: string, reset: number } = await error.context.json();
+                        const resetDate = new Date(errData.reset)
+                        setSaveErrorMessage(`${errData.message}\n\nYour quota resets on ${resetDate.toLocaleString()}`);
+                      }
+                      else {
+                        setSaveErrorMessage("Error saving highlight.");
+                      }
+                      console.error("Failed to visualize highlight", error);
                       setSaveError(true);
-                      return false;
                     }
+                  }
 
-                });
+                  visualizeHighlight(cfiRange, text);
+                  return true;
+                }
+              },
+            ]}
+          />
+        ) : (
+          <Text>Book URL is not available.</Text>
+        )}
 
-                return true;
-              }
-            },
-          ]}
+        <TableOfContents
+          ref={tableOfContentsRef}
+          onPressSection={(section) => {
+            goToLocation(section.href.split('/')[1]);
+            tableOfContentsRef.current?.dismiss();
+          }}
+          onClose={() => tableOfContentsRef.current?.dismiss()}
         />
-      ) : (
-        <Text>Book URL is not available.</Text>
-      )}
 
-      {/*
-          onDismiss={() => setSearchTerm('')}
-*/}
-
-      <TableOfContents
-        ref={tableOfContentsRef}
-        onPressSection={(section) => {
-          goToLocation(section.href.split('/')[1]);
-          tableOfContentsRef.current?.dismiss();
-        }}
-        onClose={() => tableOfContentsRef.current?.dismiss()}
-      />
-
-      <HighlightsList
-        ref={highlightsListRef}
-        onPressItem={(annotation) => {
-          goToLocation(annotation.cfiRange);
-          highlightsListRef.current?.dismiss();
-        }}
-        onClose={() => highlightsListRef.current?.dismiss()}
-      />
+        <HighlightsList
+          ref={highlightsListRef}
+          onPressItem={(annotation) => {
+            goToLocation(annotation.cfiRange);
+            highlightsListRef.current?.dismiss();
+          }}
+          onClose={() => highlightsListRef.current?.dismiss()}
+        />
 
 {/*
-      <BottomSheetModalProvider>
-        <BottomSheetModal
-          ref={bottomSheetRef}
-          index={0}
-          snapPoints={snapPoints}
-          enablePanDownToClose
-          style={{
-            ...styles.container,
-            backgroundColor: theme.body.background,
-          }}
-          handleStyle={{ backgroundColor: theme.body.background }}
-          backgroundStyle={{ backgroundColor: theme.body.background }}
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() => setSettingsModalVisible(true)}
         >
-          <BottomSheetFlatList
-            data={toc}
-            showsVerticalScrollIndicator={false}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <Pressable
-                key={item.id}
-                style={({pressed}) => ({
-                  backgroundColor: pressed ? "#fff" : "#dbdbdb",
-                  marginVertical: 2,
-                  marginHorizontal: 24,
-                  paddingVertical: 8,
-                  paddingHorizontal: 16,
-                  borderRadius: 5
-                })}
-                onPress={() => {
-                  goToLocation(item.href.split('/')[1])
-                  bottomSheetRef.current?.dismiss();
-                }}
-              >
-                <View>
-                  <Text
-                    style={{
-                      color: section?.id === item.id
-                        ? "red"
-                        : "black",
-                    }}
-                  >
-                    {item.label}
-                  </Text>
-                </View>
-              </Pressable>
-            )}
-            ListHeaderComponent={
-              <View style={{
-                width: '100%',
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginVertical: 10,
-                paddingHorizontal: 24
-              }}>
-                <Text style={{
-                  fontSize: 24
-                }}>
-                  Table of Contents
-                </Text>
-
-                <Pressable onPress={() => {bottomSheetRef.current?.dismiss()}}>
-                  <Text style={{
-                    fontSize: 16
-                  }}>Close</Text>
-                </Pressable>
-              </View>
-            }
-            style={{ width: '100%' }}
-            maxToRenderPerBatch={20}
-          />
-        </BottomSheetModal>
-      </BottomSheetModalProvider>
-      */}
-
-      {/*
-      <TouchableOpacity
-        style={styles.settingsButton}
-        onPress={() => setSettingsModalVisible(true)}
-      >
-        <Icon name="cog" size={24} color="white" />
-      </TouchableOpacity>
+          <Icon name="cog" size={24} color="white" />
+        </TouchableOpacity>
 */}
 
-      {/*
-
-      {contextMenu.visible && (
-        <View
-          style={[
-            styles.contextMenu,
-            { top: contextMenu.y, left: contextMenu.x },
-          ]}
-          ref={ctxMenuRef}
-        >
-          <TouchableOpacity
-            style={styles.contextMenuItem}
-            onPress={handleHighlight}
+{/*
+        {contextMenu.visible && (
+          <View
+            style={[
+              styles.contextMenu,
+              { top: contextMenu.y, left: contextMenu.x },
+            ]}
+            ref={ctxMenuRef}
           >
-            <Text>Highlight</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.contextMenuItem}
-            onPress={handleRenderImage}
-          >
-            <Text>Visualize</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-*/}
-
-      {/*
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={settingsModalVisible}
-        onRequestClose={() => setSettingsModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalView}>
-            <Text>Dark Mode</Text>
-            <Switch
-              value={isDarkMode}
-              onValueChange={(value) => setIsDarkMode(value)}
-            />
-            <Text>Font Size</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={String(fontSize)}
-              onChangeText={(value) => setFontSize(parseFloat(value) || 16)}
-            />
-            <TouchableOpacity onPress={applySettings}>
-              <Text style={styles.closeButtonText}>Save</Text>
+            <TouchableOpacity
+              style={styles.contextMenuItem}
+              onPress={handleHighlight}
+            >
+              <Text>Highlight</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.contextMenuItem}
+              onPress={handleRenderImage}
+            >
+              <Text>Visualize</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
+        )}
 */}
 
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={imageModalVisible}
-        onRequestClose={() => setImageModalVisible(false)}
-      >
-
-      {/*
-            {selectedHighlight?.imgUrl ? (
-
-                <Image
-                  source={{ uri: selectedHighlight?.imgUrl }}
-                  style={{ width: 425, height: 425 }}
-                  resizeMode="contain"
-                />
-      */}
-
-        <View style={styles.modalContainer}>
-          <View style={styles.imageModalView}>
-            {selectedAnnotation?.data?.img_url ? (
-              <>
-                <View style={styles.imageHeader}>
-                  <Text style={{ fontSize: 20 }}>Generated image:</Text>
-                  <TouchableOpacity onPress={handleRegenerate}>
-                    <Icon
-                      name="refresh"
-                      size={19}
-                      color="#000000"
-                      style={styles.refreshIcon}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setCustomPromptModelVisible(true)}
-                  >
-                    <Feather
-                      name="edit"
-                      size={19}
-                      color="#000000"
-                      style={styles.editTextIcon}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={deleteImageHighlight}>
-                    <Icon name="trash" size={19} style={styles.trashIcon} />
-                  </TouchableOpacity>
-                </View>
-                <Image
-                  source={{ uri: selectedAnnotation?.data?.img_url }}
-                  style={{ width: 425, height: 425 }}
-                  resizeMode="contain"
-                />
-              </>
-            ) : (
-              <>
-                <View style={styles.imageHeaderTrash}>
-                  <Icon
-                    name="trash"
-                    size={24}
-                    style={{ color: "gray", marginHorizontal: 10 }}
-                    onPress={handleDeletehighlight}
-                  />
-                </View>
-                <Text>No image available for this highlight.</Text>
-                <TouchableOpacity
-                  style={styles.visualizeButton}
-                  onPress={() => {
-                  if (selectedHighlight && !selectedHighlight.img_url) {
-                    handleGenerateNewImage(selectedHighlight);
-                  } else {
-                    console.error("Highlight already has an image or is invalid");
-                  }
-                }}
-              >
-                <Text style={styles.buttonText}>Visualize</Text>
-                </TouchableOpacity>
-              </>
-            )}
-            <TouchableOpacity onPress={() => setImageModalVisible(false)}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Model for custom text prompt
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={custompromptModelVisible}
-        onRequestClose={() => setCustomPromptModelVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.imageModalView}>
-            <Text style={styles.title}>Customize prompt</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder={selectedHighlight?.text}
-              onChangeText={setInputText}
-              multiline
-            />
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => setCustomPromptModelVisible(false)}
-              >
-                <Text style={styles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => {
-                  handleCustomImagePrompt();
-                }}
-              >
-                <Text style={styles.buttonText}>Regenerate</Text>
+{/*
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={settingsModalVisible}
+          onRequestClose={() => setSettingsModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalView}>
+              <Text>Dark Mode</Text>
+              <Switch
+                value={isDarkMode}
+                onValueChange={(value) => setIsDarkMode(value)}
+              />
+              <Text>Font Size</Text>
+              <TextInput
+                style={styles.input}
+                keyboardType="numeric"
+                value={String(fontSize)}
+                onChangeText={(value) => setFontSize(parseFloat(value) || 16)}
+              />
+              <TouchableOpacity onPress={applySettings}>
+                <Text style={styles.closeButtonText}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 */}
 
-      {/* Saving highlight spinner */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(!modalVisible)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalView}>
-            {!saveError ? (
-              <Loading message={saveMessage} />
-            ) : (
-              <>
-                <Text>{saveErrorMessage}</Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    setModalVisible(false);
-                    setSaveError(false);
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={imageModalVisible}
+          onRequestClose={() => setImageModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.imageModalView}>
+              {selectedAnnotation?.data?.img_url ? (
+                <>
+                  <View style={styles.imageHeader}>
+                    <Text style={{ fontSize: 20 }}>Generated image:</Text>
+                    <TouchableOpacity onPress={handleRegenerate}>
+                      <Icon
+                        name="refresh"
+                        size={19}
+                        color="#000000"
+                        style={styles.refreshIcon}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setCustomPromptModelVisible(true)}
+                    >
+                      <Feather
+                        name="edit"
+                        size={19}
+                        color="#000000"
+                        style={styles.editTextIcon}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={deleteImageHighlight}>
+                      <Icon name="trash" size={19} style={styles.trashIcon} />
+                    </TouchableOpacity>
+                  </View>
+                  <Image
+                    source={{ uri: selectedAnnotation?.data?.img_url }}
+                    style={{ width: 425, height: 425 }}
+                    resizeMode="contain"
+                  />
+                </>
+              ) : (
+                <>
+                  <View style={styles.imageHeaderTrash}>
+                    <Icon
+                      name="trash"
+                      size={24}
+                      style={{ color: "gray", marginHorizontal: 10 }}
+                      onPress={handleDeletehighlight}
+                    />
+                  </View>
+                  <Text>No image available for this highlight.</Text>
+                  <TouchableOpacity
+                    style={styles.visualizeButton}
+                    onPress={() => {
+                    if (selectedHighlight && !selectedHighlight.img_url) {
+                      handleGenerateNewImage(selectedHighlight);
+                    } else {
+                      console.error("Highlight already has an image or is invalid");
+                    }
                   }}
                 >
-                  <Text style={styles.closeButtonText}>Close</Text>
-                </TouchableOpacity>
-              </>
-            )}
+                  <Text style={styles.buttonText}>Visualize</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+              <TouchableOpacity onPress={() => setImageModalVisible(false)}>
+                <Text style={styles.closeButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+
+        {/* Model for custom text prompt
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={custompromptModelVisible}
+          onRequestClose={() => setCustomPromptModelVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.imageModalView}>
+              <Text style={styles.title}>Customize prompt</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder={selectedHighlight?.text}
+                onChangeText={setInputText}
+                multiline
+              />
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => setCustomPromptModelVisible(false)}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => {
+                    handleCustomImagePrompt();
+                  }}
+                >
+                  <Text style={styles.buttonText}>Regenerate</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+  */}
+
+        {/* Saving highlight spinner */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(!modalVisible)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalView}>
+              {!saveError ? (
+                <Loading message={saveMessage} />
+              ) : (
+                <>
+                  <Text>{saveErrorMessage}</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setModalVisible(false);
+                      setSaveError(false);
+                    }}
+                  >
+                    <Text style={styles.closeButtonText}>Close</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
+
+      </View>
     </GestureHandlerRootView>
   );
 };
@@ -1149,19 +1059,23 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
+    display: "flex",
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.5)",
   },
-  imageModalView: {
-    width: 550,
+  modalView: {
+    height: 300,
+    width: 300,
     backgroundColor: "white",
-    borderRadius: 20,
-    padding: 50,
+    borderRadius: 5,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    justifyContent: "center",
     alignItems: "center",
   },
-  modalView: {
-    width: 350,
+  imageModalView: {
+    width: 550,
     backgroundColor: "white",
     borderRadius: 20,
     padding: 50,

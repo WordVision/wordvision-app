@@ -1,10 +1,21 @@
 {
   "version": "4",
   "specifiers": {
+    "npm:@huggingface/inference@*": "3.5.2",
     "npm:@supabase/supabase-js@*": "2.49.1",
-    "npm:@types/node@*": "22.12.0"
+    "npm:@types/node@*": "22.12.0",
+    "npm:@upstash/redis@*": "1.34.5"
   },
   "npm": {
+    "@huggingface/inference@3.5.2": {
+      "integrity": "sha512-MIB1iZTtTBclIFmRL2fbkoxZTuMjziezx87nUzzsPwCX96c+ciilWV+QQZOjOmBlx1ZrfSuJbhwZ1pylSENZnQ==",
+      "dependencies": [
+        "@huggingface/tasks"
+      ]
+    },
+    "@huggingface/tasks@0.17.7": {
+      "integrity": "sha512-7vQJgg63HhKiyO7tcqjGGXlDlG3UcNdq0XsclaSahgHxiQ9Z4JwHqKEKrtscCHV8cdIDr4rxFJGlICEF84I63A=="
+    },
     "@supabase/auth-js@2.68.0": {
       "integrity": "sha512-odG7nb7aOmZPUXk6SwL2JchSsn36Ppx11i2yWMIc/meUO2B2HK9YwZHPK06utD9Ql9ke7JKDbwGin/8prHKxxQ==",
       "dependencies": [
@@ -70,6 +81,15 @@
         "@types/node"
       ]
     },
+    "@upstash/redis@1.34.5": {
+      "integrity": "sha512-ZsYy1AX89OWQIGGQcO8CDBoWyLuVuvuJdjLKfj5WYxnhzYBzYb8E26gbvLO1lVlhVBAIuFX/k0LNjtv7wn2bcQ==",
+      "dependencies": [
+        "crypto-js"
+      ]
+    },
+    "crypto-js@4.2.0": {
+      "integrity": "sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q=="
+    },
     "tr46@0.0.3": {
       "integrity": "sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw=="
     },
@@ -90,8 +110,21 @@
       "integrity": "sha512-RKW2aJZMXeMxVpnZ6bck+RswznaxmzdULiBr6KY7XkTnW8uvt0iT9H5DkHUChXrc+uurzwa0rVI16n/Xzjdz1w=="
     }
   },
+  "redirects": {
+    "https://deno.land/x/upstash_redis/mod.ts": "https://deno.land/x/upstash_redis@v1.34.5/mod.ts"
+  },
   "remote": {
+    "https://cdn.skypack.dev/-/@upstash/core-analytics@v0.0.10-ZmX21TeWkis2FpTZYW09/dist=es2019,mode=imports/optimized/@upstash/core-analytics.js": "09b00006da191a6bb025bf2c7f91c2f58b43d269630e1ea238657ec845fa56fe",
+    "https://cdn.skypack.dev/-/@upstash/ratelimit@v2.0.5-aVmL6TfVoCQjImPJXh35/dist=es2019,mode=imports/optimized/@upstash/ratelimit.js": "4a7e6135ac56221f596f5024eb0df66027d66deecd8d970f00b58fe53d1e86ce",
+    "https://cdn.skypack.dev/@upstash/ratelimit@latest": "ff97853514bbe36395adcb37c0c419e8b6799d340540afaf00ac36a454a5ad6e",
     "https://esm.sh/@huggingface/inference@2.3.2": "ba610477ac40acfc0967b8eed36c521e6dd34ae759b504aa64cfe40023dd6996",
     "https://esm.sh/@huggingface/inference@2.3.2/denonext/inference.mjs": "5ecf18bd38d3689bf997508d1655c358a192df45b9ce84c64607d7ea560a15e1"
+  },
+  "workspace": {
+    "dependencies": [
+      "npm:@huggingface/inference@*",
+      "npm:@supabase/supabase-js@*",
+      "npm:@upstash/redis@*"
+    ]
   }
 }

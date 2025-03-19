@@ -20,9 +20,6 @@ import Section from "epubjs/types/section";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Feather from "react-native-vector-icons/Feather";
 import { useNavigation } from "@react-navigation/native";
-
-import { FunctionsHttpError } from "@supabase/supabase-js";
-
 import { AuthContext, type User } from "@/utilities/authContext";
 import {
   type Highlight,
@@ -191,40 +188,41 @@ export default function BookReaderPage() {
       console.log({databaseData: database.data});
 
       if (database.data) {
-
-        const storage = await supabase.storage.from("books").createSignedUrl(database.data.filename, 3600)
-        console.log({storage})
-
-        if (storage.data) {
-          const url = storage.data.signedUrl;
-          const destination = new Directory(Paths.cache, database.data.id);
-
-          try {
-            if (!destination.exists) {
-              destination.create();
-            }
-
-            const file = new File(Paths.cache, database.data.id, database.data.filename);
-
-            if (!file.exists) {
-              console.log("Downloading Book...")
-              const output = await File.downloadFileAsync(url, destination);
-              if (output.exists) console.log("Book downloaded!")
-            }
-            else {
-              console.log("Found downloaded book.")
-            }
-
-            console.log(file.uri);
-            setBookUrl(file.uri);
-          }
-          catch (error) {
-            console.error(error);
-          }
+        const file = new File(Paths.cache, database.data.id, database.data.filename);
+        if (file.exists) {
+          console.log("Found downloaded book.")
+          console.log({file: file.uri})
+          setBookUrl(file.uri);
         }
         else {
-          console.error("Error fetching book from storage:", storage.error);
-          setError("Error fetching book.");
+          const destination = new Directory(Paths.cache, database.data.id);
+          if (!destination.exists) {
+            destination.create();
+          }
+
+          const storage = await supabase.storage.from("books").createSignedUrl(database.data.filename, 3600)
+          console.log({storage})
+
+          if (storage.data) {
+
+            const url = storage.data.signedUrl;
+            console.log("Downloading Book...")
+
+            try {
+              const output = await File.downloadFileAsync(url, destination);
+              if (output.exists) {
+                console.log("Book downloaded!")
+                setBookUrl(output.uri);
+              }
+            }
+            catch (error) {
+              console.error(error);
+            }
+          }
+          else {
+            console.error("Error fetching book from storage:", storage.error);
+            setError("Error fetching book.");
+          }
         }
 
         if (database.data.highlights.length > 0) {
@@ -267,6 +265,7 @@ export default function BookReaderPage() {
     // };
 
     fetchBook();
+
     // fetchSettings();
   }, [bookId, user]);
 
@@ -732,7 +731,9 @@ export default function BookReaderPage() {
               rendition.themes.select("custom");
             }}
           />
+          bookUrl
 */}
+
 
         {bookUrl ? (
           <Reader
@@ -751,20 +752,22 @@ export default function BookReaderPage() {
               {
                 label: 'Visualize',
                 action: (cfiRange, text) => {
+                  const visualizeHighlight = async (cfiRange: string, text: string) => {
+                    setSaveMessage("Visualizing highlight...");
+                    setModalVisible(true);
 
-                  setSaveMessage("Visualizing highlight...");
-                  setModalVisible(true);
-
-                  supabase.functions.invoke('highlight', {
-                    body: {
-                      book_id: bookId,
-                      text: text,
-                      location: cfiRange,
-                      visualize: true,
-                    },
-                  }).then(({data, error}) => {
+                    const { data, error } = await supabase.functions.invoke('highlight', {
+                      body: {
+                        book_id: bookId,
+                        text: text,
+                        location: cfiRange,
+                        visualize: true,
+                      },
+                    })
 
                     if (data) {
+
+                      console.log("from data", {data, error})
 
                       addAnnotation(
                         'highlight',
@@ -785,21 +788,20 @@ export default function BookReaderPage() {
                       return true;
                     }
                     else {
-
-                      if ((error as FunctionsHttpError).context.status === 429) {
-                        setSaveErrorMessage("Error:\n\nMax quota reached for image generation.\n\nLimited to 2 per day");
+                      if (error.context.status === 429) {
+                        const errData: { status: number, message: string, reset: number } = await error.context.json();
+                        const resetDate = new Date(errData.reset)
+                        setSaveErrorMessage(`${errData.message}\n\nYour quota resets on ${resetDate.toLocaleString()}`);
                       }
                       else {
                         setSaveErrorMessage("Error saving highlight.");
                       }
-
                       console.error("Failed to visualize highlight", error);
                       setSaveError(true);
-                      return false;
                     }
+                  }
 
-                  });
-
+                  visualizeHighlight(cfiRange, text);
                   return true;
                 }
               },

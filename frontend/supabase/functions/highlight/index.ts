@@ -57,8 +57,13 @@ Deno.serve(async (req: Request) => {
     const identifier = user_id;
     const { success } = await ratelimit.limit(identifier);
     if (!success) {
+
+      const { reset } = await ratelimit.getRemaining(identifier);
+
       return new Response(JSON.stringify({
-          error: `Image generation limit exceeded. You only have ${limit} requests per day`
+          status: 429,
+          message: `Image generation limit exceeded. You only have ${limit} requests per day`,
+          reset
         }), {
           status: 429,
           headers: {

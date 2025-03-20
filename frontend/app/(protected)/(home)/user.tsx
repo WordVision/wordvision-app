@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -8,54 +8,55 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedTextInput } from "@/components/ThemedTextInput";
 import { ThemedButton } from "@/components/ThemedButton";
 
-import { Auth, AuthContext, User, getUser } from "@/utilities/authContext";
+import { supabase } from "@/lib/supabase";
 
 interface UserInfo {
-  name: string;
+  first_name: string;
+  last_name: string;
   birthdate: string;
   email: string;
 }
 
 export default function user() {
-  const backendApiUrl = process.env.EXPO_PUBLIC_BACKEND_API_URL;
-
-  const user = useContext(AuthContext) as User;
 
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [birthdate, setBirthdate] = useState("");
   const [editMode, setEditMode] = useState(false);
-  const [originalData, setOriginalData] = useState({
-    name: "",
+  const [originalData, setOriginalData] = useState<UserInfo>({
+    first_name: "",
+    last_name: "",
     birthdate: "",
     email: "",
   });
 
   useEffect(() => {
     async function init() {
+      setLoading(true);
+
       console.debug("inside user init()");
 
-      const url = `${backendApiUrl}/user`;
-      console.debug(`Calling GET ${url}...`);
-      try {
-        const res = await fetch(url, {
-          headers: user.authorizationHeaders(),
-        });
+      const { data, error } = await supabase.auth.getUser();
 
-        if (!res.ok) {
-          throw new Error(`${res.status} ${res.statusText}`);
-        }
+      if (data.user) {
+        const user = data.user.user_metadata as UserInfo;
 
-        const data = (await res.json()) as UserInfo;
-        console.debug("Successfully got user data", { data });
+        setFirstName(user.first_name);
+        setLastName(user.last_name);
+        setBirthdate(user.birthdate.split("T")[0]);
+        setEmail(user.email);
 
-        setName(data.name);
-        setBirthdate(data.birthdate);
-        setEmail(data.email);
-        setOriginalData(data); // Set the initial state
-      } catch (err) {
-        console.error("Unable to call GET /user", { err });
+        setOriginalData({
+          first_name: user.first_name,
+          last_name: user.last_name,
+          email: user.email,
+          birthdate: user.birthdate.split("T")[0]
+        }); // Set the initial state
+      }
+      else {
+        console.error(error?.message)
       }
 
       setLoading(false);
@@ -65,74 +66,61 @@ export default function user() {
   }, []);
 
   const handleSave = async () => {
-    try {
-      const url = `${backendApiUrl}/user`;
+    const { data, error } = await supabase.auth.updateUser({
+      data: {
+        first_name: firstName,
+        last_name: lastName,
+        birthdate: (new Date(birthdate)).toJSON()
+      }
+    });
 
-      const res = await fetch(url, {
-        method: "PUT",
-        headers: {
-          ...user.authorizationHeaders("application/json"),
-        },
-        body: JSON.stringify({ name, email, birthdate }),
+    if (data) {
+      setOriginalData({
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        birthdate
       });
 
-      if (!res.ok) {
-        throw new Error(`${res.status} ${res.statusText}`);
-      }
-
-      console.debug("User details updated successfully");
       setEditMode(false);
-
-      // Update original data
-      setOriginalData({ name, email, birthdate });
-    } catch (err) {
-      console.error("Failed to update user details", { err });
+    }
+    else {
+      console.error(error);
     }
   };
 
   const handleCancel = () => {
     // Revert the state to the last saved original data
-    setName(originalData.name);
+    setFirstName(originalData.first_name);
+    setLastName(originalData.last_name);
     setBirthdate(originalData.birthdate);
     setEmail(originalData.email);
     setEditMode(false);
   };
 
-  const handleDelete = async () => {
-    // Ask for confirmation before deletion
-    const confirmed = window.confirm(
-      "So SAD to see you go :( Sure to DELETE your account?"
-    );
+  const onChangeBirthdate = (newDate: string) => {
+    // Remove any non-digits
+    const digitsOnly = newDate.replace(/\D/g, '').slice(0, 8);
 
-    if (confirmed) {
-      try {
-        const user = await getUser();
-        if (!user) {
-          throw new Error("user is undefined");
-        }
-        const url = `${backendApiUrl}/user`;
+    let formatted = '';
+    if (digitsOnly.length > 0) {
 
-        const res = await fetch(url, {
-          method: "DELETE",
-          headers: {
-            ...user.authorizationHeaders(),
-            "Content-Type": "application/json",
-          },
-        });
+      // Add year part
+      formatted += digitsOnly.slice(0, Math.min(4, digitsOnly.length));
 
-        if (!res.ok) {
-          throw new Error(`${res.status} ${res.statusText}`);
-        }
+      // Add month part with dash
+      if (digitsOnly.length > 4) {
+        formatted += '-' + digitsOnly.slice(4, Math.min(6, digitsOnly.length));
+      }
 
-        console.log("User account deleted successfully");
-
-        // Redirect to the landing page (reusing logout redirection logic)
-        Auth.signOut();
-      } catch (err) {
-        console.error("Failed to delete user account", { err });
+      // Add day part with dash
+      if (digitsOnly.length > 6) {
+        formatted += '-' + digitsOnly.slice(6, 8);
       }
     }
-  };
+
+    setBirthdate(formatted);
+  }
 
   return (
     <ParallaxScrollView
@@ -153,27 +141,49 @@ export default function user() {
         ) : (
           <>
             <View style={styles.inputContainer}>
-              <ThemedText type="default">Email</ThemedText>
-              <ThemedTextInput
-                style={styles.input}
-                onChangeText={setEmail}
-                value={email}
-                editable={false}
-              />
-              <ThemedText type="default">Name</ThemedText>
-              <ThemedTextInput
-                style={styles.input}
-                onChangeText={setName}
-                value={name}
-                editable={editMode}
-              />
-              <ThemedText type="default">Birthdate</ThemedText>
-              <ThemedTextInput
-                style={styles.input}
-                onChangeText={setBirthdate}
-                value={birthdate}
-                editable={editMode}
-              />
+              <View>
+                <ThemedText type="default">Email</ThemedText>
+                <ThemedTextInput
+                  style={[{backgroundColor: editMode ? "#d9d9d9" : "white"}, styles.input]}
+                  onChangeText={setEmail}
+                  value={email}
+                  editable={false}
+                />
+              </View>
+
+              <View style={styles.splitInput}>
+                <View style={styles.inputGroup}>
+                  <ThemedText type="default">First Name</ThemedText>
+                  <ThemedTextInput
+                    style={styles.input}
+                    onChangeText={setFirstName}
+                    value={firstName}
+                    editable={editMode}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <ThemedText type="default">Last Name</ThemedText>
+                  <ThemedTextInput
+                    style={styles.input}
+                    onChangeText={setLastName}
+                    value={lastName}
+                    editable={editMode}
+                  />
+                </View>
+              </View>
+
+              <View>
+                <ThemedText type="default">Birthdate</ThemedText>
+                <ThemedTextInput
+                  style={styles.input}
+                  onChangeText={onChangeBirthdate}
+                  value={birthdate}
+                  editable={editMode}
+                  placeholder="yyyy-mm-dd"
+                  keyboardType="numeric"
+                />
+              </View>
             </View>
 
             <View style={styles.buttonContainer}>
@@ -202,9 +212,9 @@ export default function user() {
                 <ThemedButton
                   style={styles.button}
                   lightFg="white"
-                  lightBg="rgb(34 197 94)"
+                  lightBg="#3994ec"
                   darkFg="white"
-                  darkBg="rgb(21 128 61)"
+                  darkBg="#393aec"
                   title="Edit"
                   onPress={() => setEditMode(true)}
                 />
@@ -219,16 +229,7 @@ export default function user() {
                     darkFg="white"
                     darkBg="rgb(21 128 61)"
                     title="Sign Out"
-                    onPress={() => Auth.signOut()}
-                  />
-                  <ThemedButton
-                    style={styles.button}
-                    lightFg="white"
-                    lightBg="rgb(185 28 28)"
-                    darkFg="rgb(254 226 226)"
-                    darkBg="rgb(248 113 113)"
-                    title="Delete"
-                    onPress={handleDelete}
+                    onPress={() => supabase.auth.signOut()}
                   />
                 </>
               )}
@@ -251,36 +252,46 @@ const styles = StyleSheet.create({
   centeredContainer: {
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
-    marginBottom: 20,
+    paddingHorizontal: 8,
   },
 
   title: {
     textAlign: "center",
     fontSize: 20,
-    paddingHorizontal: 16,
   },
 
   inputContainer: {
-    width: 750,
-    marginTop: 32,
+    width: "100%",
+    display: "flex",
+    gap: 8,
+  },
+
+  splitInput: {
+    maxWidth: "100%",
+    display: "flex",
+    flexDirection: "row",
+    gap: 8,
+  },
+
+  inputGroup: {
+    flex: 1
   },
 
   input: {
     height: 40,
-    margin: 12,
     borderWidth: 1,
     padding: 10,
   },
 
   buttonContainer: {
+    padding: 16,
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-around",
-    width: 750,
-    marginTop: 32,
+    gap: 4,
   },
 
   button: {
-    width: 150,
+    width: 135,
   },
 });

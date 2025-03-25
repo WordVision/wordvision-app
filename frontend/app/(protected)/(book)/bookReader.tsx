@@ -60,6 +60,46 @@ import { TableOfContents } from "@/components/TableOfContents";
 import { HighlightsList } from "@/components/HighlightsList";
 
 export default function BookReaderPage() {
+
+  /*
+
+    TODO: Refactor edge function so that its only job is to generate image at limited rates
+
+    TODO: Implement functions in backend service
+
+    createHighlight(cfiRage: string, text: string, visualize: boolean = false)
+    - creates a new highlight
+    - if visualize is true, generate an image for highlight using highlight text
+    - return highlight details (id is important)
+
+    visualizeHighlight(id: string, prompt: string)
+    - generate new image for existing highlight's image
+    - return highlight details (img_url is important)
+
+    deleteHighlightImage(id: string)
+    - deletes the following:
+      - image from blob storage
+      - img_url from highlight in database
+      - img_prompt from highlight in database
+    - return boolean based on success
+
+    deleteHighlight(id: string)
+    - deletes the following:
+      - image from blob storage
+      - highlight from database
+    - return boolean based on success
+
+  */
+
+
+
+
+
+
+
+
+
+
   const user = useContext(AuthContext) as User;
 
   const {
@@ -621,49 +661,49 @@ export default function BookReaderPage() {
   // };
 
   //handle edit icon for custom text image generation
-  // const handleCustomImagePrompt = async () => {
-  //   setSaveMessage("Visualizing highlight...");
-  //   setModalVisible(true);
-  //
-  //   if (inputText) {
-  //     try {
-  //       const imgUrl = selectedHighlight?.imgUrl;
-  //       const highlightId = imgUrl?.split("/").pop()?.replace(".png", "") || "";
-  //
-  //       const response = await createCustomImage(
-  //         user,
-  //         bookId,
-  //         highlightId,
-  //         inputText
-  //       );
-  //
-  //       if (response) {
-  //         const updatedHighlight = await fetchUpdatedHighlight(
-  //           user,
-  //           bookId,
-  //           highlightId
-  //         );
-  //         const timestampedUrl = `${updatedHighlight.imgUrl}?t=${new Date().getTime()}`;
-  //
-  //         setHighlights(
-  //           highlights.map((h) =>
-  //             h.location === selectedHighlight?.location
-  //               ? { ...h, imgUrl: timestampedUrl }
-  //               : h
-  //           )
-  //         );
-  //         setSelectedHighlight({ ...updatedHighlight, imgUrl: timestampedUrl });
-  //       }
-  //     } catch (error) {
-  //       console.error(
-  //         "Error in regenerating image or fetching updated highlight:",
-  //         error
-  //       );
-  //     } finally {
-  //       setModalVisible(false);
-  //     }
-  //   }
-  // }
+  const handleCustomImagePrompt = async () => {
+    setSaveMessage("Visualizing highlight...");
+    setModalVisible(true);
+
+    if (inputText) {
+      try {
+        const imgUrl = selectedHighlight?.imgUrl;
+        const highlightId = imgUrl?.split("/").pop()?.replace(".png", "") || "";
+
+        const response = await createCustomImage(
+          user,
+          bookId,
+          highlightId,
+          inputText
+        );
+
+        if (response) {
+          const updatedHighlight = await fetchUpdatedHighlight(
+            user,
+            bookId,
+            highlightId
+          );
+          const timestampedUrl = `${updatedHighlight.imgUrl}?t=${new Date().getTime()}`;
+
+          setHighlights(
+            highlights.map((h) =>
+              h.location === selectedHighlight?.location
+                ? { ...h, imgUrl: timestampedUrl }
+                : h
+            )
+          );
+          setSelectedHighlight({ ...updatedHighlight, imgUrl: timestampedUrl });
+        }
+      } catch (error) {
+        console.error(
+          "Error in regenerating image or fetching updated highlight:",
+          error
+        );
+      } finally {
+        setModalVisible(false);
+      }
+    }
+  }
 
   // Delete highlight with no text from the model
   const handleDeletehighlight = async () => {
@@ -903,7 +943,10 @@ export default function BookReaderPage() {
               {selectedAnnotation?.data?.img_url ? (
                 <>
                   <View style={styles.imageHeader}>
+
                     <Text style={{ fontSize: 20 }}>Generated image:</Text>
+
+                    {/*
                     <TouchableOpacity onPress={handleRegenerate}>
                       <Icon
                         name="refresh"
@@ -912,6 +955,8 @@ export default function BookReaderPage() {
                         style={styles.refreshIcon}
                       />
                     </TouchableOpacity>
+                    */}
+
                     <TouchableOpacity
                       onPress={() => setCustomPromptModelVisible(true)}
                     >
@@ -922,13 +967,16 @@ export default function BookReaderPage() {
                         style={styles.editTextIcon}
                       />
                     </TouchableOpacity>
+
                     <TouchableOpacity onPress={deleteImageHighlight}>
                       <Icon name="trash" size={19} style={styles.trashIcon} />
                     </TouchableOpacity>
+
                   </View>
+
                   <Image
                     source={{ uri: selectedAnnotation?.data?.img_url }}
-                    style={{ width: 425, height: 425 }}
+                    style={{ width: 300, height: 300 }}
                     resizeMode="contain"
                   />
                 </>
@@ -964,7 +1012,8 @@ export default function BookReaderPage() {
           </View>
         </Modal>
 
-        {/* Model for custom text prompt
+
+        {/* Saving highlight spinner */}
         <Modal
           animationType="slide"
           transparent={true}
@@ -974,19 +1023,23 @@ export default function BookReaderPage() {
           <View style={styles.modalContainer}>
             <View style={styles.imageModalView}>
               <Text style={styles.title}>Customize prompt</Text>
+
               <TextInput
                 style={styles.textInput}
-                placeholder={selectedHighlight?.text}
+                value={selectedAnnotation?.cfiRangeText}
                 onChangeText={setInputText}
                 multiline
               />
+
               <View style={styles.buttonContainer}>
+
                 <TouchableOpacity
                   style={styles.button}
                   onPress={() => setCustomPromptModelVisible(false)}
                 >
                   <Text style={styles.buttonText}>Cancel</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity
                   style={styles.button}
                   onPress={() => {
@@ -995,11 +1048,11 @@ export default function BookReaderPage() {
                 >
                   <Text style={styles.buttonText}>Regenerate</Text>
                 </TouchableOpacity>
+
               </View>
             </View>
           </View>
         </Modal>
-  */}
 
         {/* Saving highlight spinner */}
         <Modal
@@ -1058,6 +1111,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   modalContainer: {
+    padding: 16,
     flex: 1,
     display: "flex",
     justifyContent: "center",
@@ -1075,11 +1129,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   imageModalView: {
-    width: 550,
+    width: "100%",
     backgroundColor: "white",
-    borderRadius: 20,
-    padding: 50,
+    // backgroundColor: "red",
+    borderRadius: 2,
+    padding: 16,
+    // display: "flex",
     alignItems: "center",
+    // justifyContent: "center",
   },
   imageHeader: {
     flexDirection: "row",
@@ -1117,8 +1174,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 10,
+    // backgroundColor: "red",
   },
   textInput: {
+    // backgroundColor: "red",
     width: "100%",
     height: 150,
     borderColor: "black",

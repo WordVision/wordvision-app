@@ -81,17 +81,6 @@ export default function BookReaderPage() {
 
   const { highlights, setHighlights } = useContext(HighlightContext);
 
-  // const ctxMenuRef = useRef<any>(null);
-
-  // const route = useRoute();
-  //
-  // const { bookId, userHighlight } = route.params as {
-  //   bookId: string;
-  //   userHighlight: Highlight;
-  // };
-
-  // const [location, setLocation] = useState<string | number>(0);
-
   const [bookUrl, setBookUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -122,8 +111,6 @@ export default function BookReaderPage() {
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [fontSize, setFontSize] = useState(16);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  // const imageURL = selectedHighlight?.imgUrl;
-  // const highlightId = imageURL?.split("/").pop()?.replace(".png", "");
 
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
   const navigation = useNavigation();
@@ -267,108 +254,10 @@ export default function BookReaderPage() {
       setLoading(false);
     };
 
-    // const fetchSettings = async () => {
-    //   try {
-    //     const response = await getBookSettings(user, bookId);
-    //     if (response) {
-    //       const parsedFontSize = parseInt(
-    //         response.font_size.replace("px", ""),
-    //         10
-    //       );
-    //       setFontSize(parsedFontSize);
-    //       setIsDarkMode(response.dark_mode || false);
-    //     }
-    //   } catch (err) {
-    //     console.error("Error fetching book settings:", err);
-    //   }
-    // };
-
     fetchBook();
 
     // fetchSettings();
   }, [bookId, user]);
-
-  // useEffect(() => {
-  //   if (rendition) {
-  //     // Apply settings to rendition only once after it's initialized
-  //     rendition.themes.fontSize(`${fontSize}px`);
-  //     rendition.themes.register("custom", {
-  //       "html, body": {
-  //         color: isDarkMode ? "#FFFFFF" : "#000000",
-  //         background: isDarkMode ? "#000000" : "#FFFFFF",
-  //       },
-  //     });
-  //     rendition.themes.select("custom");
-  //   }
-  // }, [rendition, fontSize, isDarkMode]);
-
-  // Adding highlights
-  // useEffect(() => {
-  //   if (highlights && rendition) {
-  //     highlights.forEach((highlight) => {
-  //       rendition.annotations.add(
-  //         "highlight",
-  //         highlight.location,
-  //         {},
-  //         () => handleHighlightClick(highlight),
-  //         "hl",
-  //         {
-  //           fill: "red",
-  //           "fill-opacity": "0.5",
-  //           "mix-blend-mode": "multiply",
-  //         }
-  //       );
-  //     });
-  //
-  //     function setContextMenuHandler(_: Section, view: any) {
-  //       const iframe = view.iframe as HTMLIFrameElement | null;
-  //       const iframeDoc = iframe?.contentDocument;
-  //       const iframeWindow = iframe?.contentWindow;
-  //
-  //       if (iframeDoc && iframeWindow) {
-  //         function contextMenuHandler(event: MouseEvent) {
-  //           event.preventDefault();
-  //           const textSelection = iframeWindow?.getSelection();
-  //           if (textSelection && textSelection.toString().length > 0) {
-  //             const x = event.screenX - window.screenX + 5;
-  //             const y = event.screenY - window.screenY - 275;
-  //             setContextMenu({ visible: true, x, y });
-  //           }
-  //         }
-  //
-  //         function dismissMenuHandler(e: MouseEvent) {
-  //           const menu = ctxMenuRef.current as HTMLElement;
-  //           if (menu && !menu.contains(e.target as Node) && e.button === 0) {
-  //             setContextMenu({ visible: false, x: 0, y: 0 });
-  //           }
-  //         }
-  //
-  //         iframeDoc.addEventListener("contextmenu", contextMenuHandler);
-  //         iframeDoc.addEventListener("mousedown", dismissMenuHandler);
-  //       } else {
-  //         console.error("Unable to find epubjs iframe");
-  //       }
-  //     }
-  //
-  //     function setRenderSelection(cfiRange: string, _: Contents) {
-  //       if (rendition) {
-  //         const selection: Selection = {
-  //           text: rendition.getRange(cfiRange).toString(),
-  //           location: cfiRange,
-  //         };
-  //         setSelection(selection);
-  //       }
-  //     }
-  //
-  //     rendition.on("rendered", setContextMenuHandler);
-  //     rendition.on("selected", setRenderSelection);
-  //
-  //     return () => {
-  //       rendition?.off("rendered", setContextMenuHandler);
-  //       rendition?.off("selected", setRenderSelection);
-  //     };
-  //   }
-  // }, [setSelection, rendition]);
 
   const handleRegenerate = async () => {
     if (!selectedHighlight || !selectedHighlight.imgUrl) return;
@@ -463,59 +352,6 @@ export default function BookReaderPage() {
       setModalVisible(false);
     }
   };
-  //
-  //
-  // const handleHighlight = async () => {
-  //   if (rendition && selection) {
-  //     setSaveMessage("Saving highlight...");
-  //     setModalVisible(true);
-  //
-  //     try {
-  //       const response = await createUserHighlight(user, bookId, selection);
-  //
-  //       if (response) {
-  //         setModalVisible(false);
-  //         rendition.annotations.add(
-  //           "highlight",
-  //           selection.location,
-  //           undefined,
-  //           undefined,
-  //           "hl",
-  //           {
-  //             fill: "red",
-  //             "fill-opacity": "0.5",
-  //             "mix-blend-mode": "multiply",
-  //           }
-  //         );
-  //         // @ts-ignore: DO NOT REMOVE THIS COMMENT
-  //         // This annotation was added because typescript throws an error
-  //         //   for getContents()[0]
-  //         // The return type for getContents() is outdated and actually returns
-  //         //   Contents[] instead of Contents
-  //         rendition.getContents()[0]?.window?.getSelection()?.removeAllRanges();
-  //
-  //         setHighlights(prev => {
-  //           return [
-  //             ...prev,
-  //             {
-  //               id: response.highlightId,
-  //              ...selection,
-  //             }
-  //           ]
-  //         });
-  //
-  //         setSaveError(false);
-  //       } else {
-  //         console.error("Failed to save highlight", response);
-  //         setSaveError(true);
-  //       }
-  //     } catch (error) {
-  //       console.error("Failed to save highlight", error);
-  //       setSaveError(true);
-  //     }
-  //   }
-  //   setContextMenu({ visible: false, x: 0, y: 0 });
-  // };
 
   // Function to handle delete image highlight
   const deleteImageHighlight = async () => {
@@ -552,140 +388,6 @@ export default function BookReaderPage() {
     }
   };
 
-  // const handleRenderImage = async () => {
-  //   if (rendition && selection) {
-  //     setSaveMessage("Visualizing highlight...");
-  //     setModalVisible(true);
-  //
-  //     try {
-  //       const url = `http://localhost:8000/book/${bookId}/highlight?image=true`;
-  //       const response = await fetch(url, {
-  //         method: "POST",
-  //         body: JSON.stringify(selection),
-  //         headers: user.authorizationHeaders(),
-  //       });
-  //
-  //       if (response.ok) {
-  //         const data = await response.json();
-  //         const highlight = { ...selection, imgUrl: data.imgUrl, id: data.highlightId };
-  //
-  //         setGeneratedImageUrl(data.imgUrl || null);
-  //         setHighlights([...highlights, { ...selection, imgUrl: data.imgUrl, id: data.highlightId }]);
-  //
-  //         rendition.annotations.add(
-  //           "highlight",
-  //           highlight.location,
-  //           {},
-  //           () => handleHighlightClick(highlight),
-  //           "hl",
-  //           {
-  //             fill: "red",
-  //             "fill-opacity": "0.5",
-  //             "mix-blend-mode": "multiply",
-  //           }
-  //         );
-  //
-  //         // @ts-ignore: DO NOT REMOVE THIS COMMENT
-  //         // This annotation was added because typescript throws an error
-  //         //   for getContents()[0]
-  //         // The return type for getContents() is outdated and actually returns
-  //         //   Contents[] instead of Contents
-  //         rendition.getContents()[0]?.window?.getSelection()?.removeAllRanges();
-  //       }
-  //       else {
-  //         console.error("Failed to visualize highlight", response);
-  //         setSaveError(true);
-  //       }
-  //     } catch (error) {
-  //       console.error("Failed to visualize highlight", error);
-  //       setSaveError(true);
-  //     } finally {
-  //       setModalVisible(false);
-  //     }
-  //   }
-  //   setContextMenu({ visible: false, x: 0, y: 0 });
-  // };
-  //
-  // const handleHighlightClick = (highlight: Highlight) => {
-  //   setSelectedHighlight(highlight);
-  //   setImageModalVisible(true);
-  // };
-  //
-  // const applySettings = () => {
-  //   if (rendition) {
-  //     rendition.themes.fontSize(`${fontSize}px`);
-  //     rendition.themes.register("custom", {
-  //       "html, body": {
-  //         color: isDarkMode ? "#FFFFFF" : "#000000",
-  //         background: isDarkMode ? "#000000" : "#FFFFFF",
-  //       },
-  //     });
-  //     rendition.themes.select("custom");
-  //   }
-  //
-  //   const saveSettings = async () => {
-  //     try {
-  //       const payload = {
-  //         font_size: `${fontSize}px`, // Ensure it's a string with "px"
-  //         dark_mode: isDarkMode,
-  //       };
-  //       await updateBookSettings(user, bookId, payload);
-  //       console.log("Settings saved successfully:", payload);
-  //     } catch (err) {
-  //       console.error("Error saving book settings:", err);
-  //     }
-  //   };
-  //
-  //   saveSettings();
-  //
-  //   setSettingsModalVisible(false);
-  // };
-
-  //handle edit icon for custom text image generation
-  // const handleCustomImagePrompt = async () => {
-  //   setSaveMessage("Visualizing highlight...");
-  //   setModalVisible(true);
-  //
-  //   if (inputText) {
-  //     try {
-  //       const imgUrl = selectedHighlight?.imgUrl;
-  //       const highlightId = imgUrl?.split("/").pop()?.replace(".png", "") || "";
-  //
-  //       const response = await createCustomImage(
-  //         user,
-  //         bookId,
-  //         highlightId,
-  //         inputText
-  //       );
-  //
-  //       if (response) {
-  //         const updatedHighlight = await fetchUpdatedHighlight(
-  //           user,
-  //           bookId,
-  //           highlightId
-  //         );
-  //         const timestampedUrl = `${updatedHighlight.imgUrl}?t=${new Date().getTime()}`;
-  //
-  //         setHighlights(
-  //           highlights.map((h) =>
-  //             h.location === selectedHighlight?.location
-  //               ? { ...h, imgUrl: timestampedUrl }
-  //               : h
-  //           )
-  //         );
-  //         setSelectedHighlight({ ...updatedHighlight, imgUrl: timestampedUrl });
-  //       }
-  //     } catch (error) {
-  //       console.error(
-  //         "Error in regenerating image or fetching updated highlight:",
-  //         error
-  //       );
-  //     } finally {
-  //       setModalVisible(false);
-  //     }
-  //   }
-  // }
-
   // Delete highlight with no text from the model
   const handleDeletehighlight = async () => {
     if (selectedHighlight) {
@@ -713,10 +415,6 @@ export default function BookReaderPage() {
     }
   };
 
-  // const handleBack = () => {
-  //   navigation.navigate("bookDetails", { bookId });
-  // };
-
   if (loading) {
     return <Loading message="Loading book..." />;
   }
@@ -732,28 +430,6 @@ export default function BookReaderPage() {
   return (
     <GestureHandlerRootView>
       <View style={{ flex: 1 }}>
-        {/*
-          <ReactReader
-            url={bookUrl}
-            epubInitOptions={{ openAs: "epub" }}
-            location={location}
-            locationChanged={(epubcfi: string) => setLocation(epubcfi)}
-            getRendition={(rendition: Rendition) => {
-              setRendition(rendition);
-              // Apply settings on book render
-              rendition.themes.fontSize(`${fontSize}px`);
-              rendition.themes.register("custom", {
-                "html, body": {
-                  color: isDarkMode ? "#FFFFFF" : "#000000",
-                  background: isDarkMode ? "#000000" : "#FFFFFF",
-                },
-              });
-              rendition.themes.select("custom");
-            }}
-          />
-          bookUrl
-*/}
-
         {bookUrl ? (
           <Reader
             src={bookUrl}
@@ -803,11 +479,6 @@ export default function BookReaderPage() {
                           color: "#C20114",
                         }
                       );
-
-                      // const highlight = { ...selection, imgUrl: data.imgUrl, id: data.highlightId };
-
-                      // setGeneratedImageUrl(data.imgUrl || null);
-                      // setHighlights([...highlights, { ...selection, imgUrl: data.imgUrl, id: data.highlightId }]);
                       setModalVisible(false);
                       return true;
                     } else {
@@ -857,69 +528,6 @@ export default function BookReaderPage() {
           onClose={() => highlightsListRef.current?.dismiss()}
         />
 
-        {/*
-        <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={() => setSettingsModalVisible(true)}
-        >
-          <Icon name="cog" size={24} color="white" />
-        </TouchableOpacity>
-*/}
-
-        {/*
-        {contextMenu.visible && (
-          <View
-            style={[
-              styles.contextMenu,
-              { top: contextMenu.y, left: contextMenu.x },
-            ]}
-            ref={ctxMenuRef}
-          >
-            <TouchableOpacity
-              style={styles.contextMenuItem}
-              onPress={handleHighlight}
-            >
-              <Text>Highlight</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.contextMenuItem}
-              onPress={handleRenderImage}
-            >
-              <Text>Visualize</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-*/}
-
-        {/*
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={settingsModalVisible}
-          onRequestClose={() => setSettingsModalVisible(false)}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalView}>
-              <Text>Dark Mode</Text>
-              <Switch
-                value={isDarkMode}
-                onValueChange={(value) => setIsDarkMode(value)}
-              />
-              <Text>Font Size</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                value={String(fontSize)}
-                onChangeText={(value) => setFontSize(parseFloat(value) || 16)}
-              />
-              <TouchableOpacity onPress={applySettings}>
-                <Text style={styles.closeButtonText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-*/}
-
         <ImageHighlightModal
           visible={imageModalVisible}
           annotation={selectedAnnotation}
@@ -931,43 +539,6 @@ export default function BookReaderPage() {
           onGenerateImage={handleGenerateNewImage}
           onCustomPrompt={() => setCustomPromptModelVisible(true)}
         />
-
-        {/* Model for custom text prompt
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={custompromptModelVisible}
-          onRequestClose={() => setCustomPromptModelVisible(false)}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.imageModalView}>
-              <Text style={styles.title}>Customize prompt</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder={selectedHighlight?.text}
-                onChangeText={setInputText}
-                multiline
-              />
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={styles.button}
-                  onPress={() => setCustomPromptModelVisible(false)}
-                >
-                  <Text style={styles.buttonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.button}
-                  onPress={() => {
-                    handleCustomImagePrompt();
-                  }}
-                >
-                  <Text style={styles.buttonText}>Regenerate</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-  */}
 
         {/* Saving highlight spinner */}
         <Modal

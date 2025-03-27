@@ -37,7 +37,7 @@ Deno.serve(async (req: Request) => {
   const user_id = getUserRes.data.user.id;
 
   // Check rate limits if user is allowed to generate an image
-  const limit: number = 20; // 2 requests
+  const limit: number = 2; // 2 requests
   const rate: string = "24h"; // per 24 hours
 
   const redis = new Redis({

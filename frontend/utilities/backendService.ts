@@ -1,5 +1,6 @@
 import { Alert, Platform } from "react-native";
 import { Session } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 
 // const backendURL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
 // const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://10.0.2.2:8000";
@@ -19,9 +20,12 @@ export interface Book {
 // Highlight interface
 export interface Highlight {
   id: string;
+  user_id: string;
+  book_id: string;
   text: string;
   location: string;
   img_url?: string;
+  img_prompt?: string;
 }
 
 export interface Selection {
@@ -286,39 +290,39 @@ export async function createUserHighlight(
 }
 
 // This method will create a new highlight for the user
-export async function visualizeHighlight(
-  session: Session,
-  bookId: string,
-  selection: Selection
-) {
-
-  // const url = `http://localhost:8000/book/${bookId}/highlight?image=true`;
-
-  // const response = await fetch(backendURL + `/book/${bookId}/highlight?image=true`, {
-  // // const response = await fetch(url, {
-  //   method: "POST",
-  //   body: JSON.stringify(selection),
-  //   headers: user.authorizationHeaders(),
-  // });
-
-  console.log(JSON.stringify(selection));
-
-  const response = await fetch(backendURL + `/book/${bookId}/highlight?image=true`, {
-    method: "POST",
-    body: JSON.stringify(selection),
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      "Content-Type": "application/json"
-    }
-  });
-
-  if (response.status === 200) {
-    // return true;
-    return await response.json();
-  }
-  else
-    return null;
-}
+// export async function visualizeHighlight(
+//   session: Session,
+//   bookId: string,
+//   selection: Selection
+// ) {
+//
+//   // const url = `http://localhost:8000/book/${bookId}/highlight?image=true`;
+//
+//   // const response = await fetch(backendURL + `/book/${bookId}/highlight?image=true`, {
+//   // // const response = await fetch(url, {
+//   //   method: "POST",
+//   //   body: JSON.stringify(selection),
+//   //   headers: user.authorizationHeaders(),
+//   // });
+//
+//   console.log(JSON.stringify(selection));
+//
+//   const response = await fetch(backendURL + `/book/${bookId}/highlight?image=true`, {
+//     method: "POST",
+//     body: JSON.stringify(selection),
+//     headers: {
+//       Authorization: `Bearer ${session.access_token}`,
+//       "Content-Type": "application/json"
+//     }
+//   });
+//
+//   if (response.status === 200) {
+//     // return true;
+//     return await response.json();
+//   }
+//   else
+//     return null;
+// }
 
 export async function updateBookSettings(
   session: Session,
@@ -390,3 +394,112 @@ export async function createCustomImage(
     throw new Error("Failed to regenerate highlight image.");
   }
 }
+
+
+export async function createHighlight(
+  book_id: string,
+  location: string,
+  text: string,
+  visualize: boolean = false
+): Promise<Highlight> {
+
+  // get user
+  const getUserRes = await supabase.auth.getUser();
+  if (getUserRes.error) throw getUserRes.error;
+
+  // Save highlight to database
+  const saveHighlightRes = await supabase.from("highlights")
+    .insert({
+      user_id: getUserRes.data.user?.id,
+      book_id,
+      text,
+      location
+    });
+
+  // Handle any database errors
+  if (saveHighlightRes.error) {
+    throw saveHighlightRes.error;
+  }
+
+  // Get newly created highlight id
+  const selHighIdRes = await supabase.from("highlights")
+    .select("id")
+    .eq("location", location)
+    .is("img_url", null)
+    .limit(1)
+    .single();
+
+  // Handle any database errors
+  if (selHighIdRes.error) {
+    throw selHighIdRes.error
+  }
+
+  const highlightId = selHighIdRes.data.id;
+
+  // if user wants to visualize
+  if (visualize) {
+    return await visualizeHighlight(highlightId, text);
+  }
+  else {
+    // Get newly created highlight id
+    const { data, error } = await supabase.from("highlights")
+      .select("*")
+      .eq("id", highlightId)
+      .limit(1)
+      .single();
+
+    // Handle any database errors
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  }
+}
+
+
+export async function visualizeHighlight(highlightId: string, prompt: string): Promise<Highlight> {
+
+  const genImageRes = await supabase.functions.invoke<{img_url: string}>('generate-image', {
+    body: {
+      image_id: highlightId,
+      prompt,
+    },
+  })
+
+  if (genImageRes.error) {
+    console.error("function visualizeHighlight: genImageRes Error")
+    throw genImageRes.error;
+  }
+
+  if (genImageRes.data) {
+    const updateHighlightRes = await supabase.from("highlights")
+      .update({
+        img_url: genImageRes.data.img_url,
+        img_prompt: prompt,
+      })
+      .eq("id", highlightId);
+
+    // Handle any database errors
+    if (updateHighlightRes.error) {
+      console.error("function visualizeHighlight: updateHighlightRes Error")
+      throw updateHighlightRes.error;
+    }
+  }
+
+  // Get newly created highlight id
+  const { data, error } = await supabase.from("highlights")
+    .select("*")
+    .eq("id", highlightId)
+    .limit(1)
+    .single();
+
+  // Handle any database errors
+  if (error) {
+    console.error("function visualizeHighlight: retrieveHighlight Error")
+    throw error;
+  }
+
+  return data;
+}
+

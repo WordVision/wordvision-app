@@ -1,0 +1,144 @@
+import { useEffect, useState } from 'react';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { Image } from 'expo-image';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { SlideInDown } from 'react-native-reanimated';
+import { VisualAnnotation } from './bookReader';
+import Feather from '@expo/vector-icons/Feather';
+import CustomImagePrompt from '@/components/CustomImagePrompt';
+
+export default function AnnotationDetails() {
+
+  const { annotationObj } = useLocalSearchParams<{ annotationObj: string }>();
+  const annotation: VisualAnnotation = JSON.parse(decodeURIComponent(annotationObj));
+
+  const navigation = useNavigation();
+  const router = useRouter();
+
+  const [customPromptIsVisible, setCustomPromptIsVisible] = useState<boolean>(false);
+  const [prompt, setPrompt] = useState<string>(annotation.data.img_prompt);
+  const [imgUrl, setImgUrl] = useState<string>(annotation.data.img_url);
+
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerShown: false,
+      presentation: "transparentModal",
+      animation: "fade",
+    });
+  }, [navigation]);
+
+
+
+  return (
+    <View style={s.backdrop}>
+
+      {/* Dismiss modal when pressing outside */}
+      <Pressable style={StyleSheet.absoluteFill} onPress={() => router.dismiss()}/>
+
+      <Animated.View
+        entering={SlideInDown}
+        style={s.contentContainer}
+      >
+      {imgUrl ? <>
+
+        <View style={s.headerGroup}>
+          <Text style={s.headerTitle}>Generated Image</Text>
+
+          <Pressable onPress={() => setCustomPromptIsVisible(true)}>
+            <Feather name="edit" size={18} />
+          </Pressable>
+        </View>
+
+        <Image
+          source={imgUrl}
+          style={s.image}
+        />
+
+      </> :<>
+
+        <Text style={s.headerTitle}>This highlight has no Image</Text>
+        <Pressable
+          style={{
+            // flex: 1,
+            backgroundColor: "blue",
+            paddingHorizontal: 16,
+            paddingVertical: 4,
+            marginHorizontal: 5,
+            borderRadius: 2,
+            alignItems: "center",
+          }}
+          onPress={() => {
+            handleCustomImagePrompt();
+          }}
+        >
+          <Text style={{
+            fontSize: 16,
+            color: 'white',
+            fontWeight: 'bold'
+          }}>Visualize</Text>
+        </Pressable>
+
+      </>}
+
+      </Animated.View>
+
+
+      {customPromptIsVisible &&
+        <CustomImagePrompt
+          annotation={annotation}
+          closeHandler={() => setCustomPromptIsVisible(false)}
+          onImageGenerated={(imgUrl, prompt) => {
+            setImgUrl(imgUrl);
+            setPrompt(prompt);
+          }}
+        />
+      }
+
+    </View>
+  );
+}
+
+
+const s = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#00000040',
+  },
+
+  contentContainer: {
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+    gap: 8,
+  },
+
+  headerGroup: {
+    display: "flex",
+    flexDirection: "row",
+    gap: 8,
+    alignItems: 'center',
+    justifyContent: "center",
+  },
+
+  headerTitle: {
+    fontWeight: 'bold',
+    fontSize: 18
+  },
+
+  image: {
+    width: 300,
+    height: 300
+  },
+
+  closeButtonText: {
+    marginTop: 20,
+    color: "blue",
+    fontWeight: "bold",
+    fontSize: 20,
+  },
+
+});

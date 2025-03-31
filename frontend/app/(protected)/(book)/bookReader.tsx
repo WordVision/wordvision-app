@@ -4,19 +4,14 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  Image,
-  TextInput,
   Pressable,
   useColorScheme,
 } from "react-native";
-import Icon from "react-native-vector-icons/FontAwesome";
-import Feather from "react-native-vector-icons/Feather";
 import { useNavigation } from "@react-navigation/native";
 import { useReader, Reader, Annotation } from "@epubjs-react-native/core";
 import { useFileSystem } from '@epubjs-react-native/expo-file-system';
 import { File, Paths, Directory } from 'expo-file-system/next';
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { FontAwesome5 } from '@expo/vector-icons';
 import {
   BottomSheetModal,
@@ -32,6 +27,13 @@ import {
   visualizeHighlight,
   createHighlight,
 } from "@/utilities/backendService";
+
+
+export type VisualAnnotation = Annotation<{
+  id: string;
+  img_url: string;
+  img_prompt: string;
+}>
 
 export default function BookReaderPage() {
 
@@ -53,39 +55,33 @@ export default function BookReaderPage() {
   */
 
   const {
-    theme,
-    changeFontSize,
-    changeFontFamily,
-    changeTheme,
     goToLocation,
     addAnnotation,
     updateAnnotation,
-    removeAnnotation,
-    toc,
-    section,
   } = useReader();
 
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
+
   const navigation = useNavigation();
+  const router = useRouter();
 
   const tableOfContentsRef = useRef<BottomSheetModal>(null);
   const highlightsListRef = useRef<BottomSheetModal>(null);
 
   const colorScheme = useColorScheme();
 
-  const [annotations, setAnnotations] = useState<Annotation[]>([]);
-  const [selectedAnnotation, setSelectedAnnotation] = useState<Annotation | null>(null);
+  const [annotations, setAnnotations] = useState<VisualAnnotation[]>([]);
+  const [selectedAnnotation, setSelectedAnnotation] = useState<VisualAnnotation | null>(null);
   const [bookUrl, setBookUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingBook, setLoadingBook] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [modalVisible, setModalVisible] = useState<boolean>(false);
-  const [custompromptModelVisible, setCustomPromptModelVisible] = useState<boolean>(false);
+  const [showLoadingModal, setShowLoadingModal] = useState<boolean>(false);
+  const [showEmptyModal, setShowEmptyModal] = useState<boolean>(false);
   const [imageModalVisible, setImageModalVisible] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<boolean>(false);
   const [saveMessage, setSaveMessage] = useState<string>("Saving highlight...");
   const [saveErrorMessage, setSaveErrorMessage] = useState<string>("Error saving highlight.");
   const [selectedHighlight, setSelectedHighlight] = useState<Highlight | null>(null);
-  const [prompt, setPrompt] = useState<string>();
 
 
   // Navigation options as a stack child
@@ -122,12 +118,12 @@ export default function BookReaderPage() {
   useEffect(() => {
     if (!bookId) {
       setError("No bookId provided");
-      setLoading(false);
+      setLoadingBook(false);
       return;
     }
 
     const fetchBook = async () => {
-      setLoading(true);
+      setLoadingBook(true);
 
       const database = await supabase
         .from("books")
@@ -187,17 +183,18 @@ export default function BookReaderPage() {
 
         if (database.data.highlights.length > 0) {
           setAnnotations(database.data.highlights.map(annotation => {
-            return {
+            const a: VisualAnnotation = {
               cfiRange: annotation.location,
               data: {
                 id: annotation.id,
                 img_url: annotation.img_url,
-                img_prompt: annotation.img_prompt
+                img_prompt: annotation.img_prompt,
               },
-              styles: { color: '#C20114' },
+              sectionIndex: 0, // not sure why but Annotation type needs this
               cfiRangeText: annotation.text,
               type: 'highlight',
-            } as Annotation
+            }
+            return a;
           }))
         }
 
@@ -207,7 +204,7 @@ export default function BookReaderPage() {
         setError("Error fetching book.");
       }
 
-      setLoading(false);
+      setLoadingBook(false);
     };
 
     fetchBook();
@@ -217,9 +214,9 @@ export default function BookReaderPage() {
   }, [bookId]);
 
 
-  const handleVisualizeHighlight = async (cfiRange: string, text: string) => {
+  const handleVisualizeNewHighlight = async (cfiRange: string, text: string) => {
     setSaveMessage("Visualizing highlight...");
-    setModalVisible(true);
+    setShowLoadingModal(true);
 
     try {
       const newHighlight = await createHighlight(bookId, cfiRange, text, true);
@@ -234,7 +231,7 @@ export default function BookReaderPage() {
         },
       );
 
-      setModalVisible(false);
+      setShowLoadingModal(false);
       return true;
     }
     catch (error: any) {
@@ -250,6 +247,50 @@ export default function BookReaderPage() {
       setSaveError(true);
     }
   }
+
+  const handleVisualizeExistingHighlight = async (annotation: VisualAnnotation) => {
+
+    setSaveMessage("Visualizing highlight...");
+    setShowLoadingModal(true);
+
+    try {
+      const highlight = await visualizeHighlight(annotation.data.id, annotation.cfiRangeText);
+
+      updateAnnotation(annotation, {
+        id: annotation.data.id,
+        img_url: highlight.img_url,
+        img_prompt: highlight.img_prompt,
+      })
+
+      annotation.data.img_url = highlight.img_url!;
+      annotation.data.img_prompt = highlight.img_prompt!;
+
+      setShowLoadingModal(false);
+      setShowEmptyModal(false);
+
+      router.push({
+        pathname: "/(protected)/(book)/imageModal",
+        params: {
+          annotationObj: encodeURIComponent(JSON.stringify(annotation))
+        }
+      });
+
+      return true;
+    }
+    catch (error: any) {
+      if (error.context?.status === 429) {
+        const errData: { status: number, message: string, reset: number } = await error.context.json();
+        const resetDate = new Date(errData.reset)
+        setSaveErrorMessage(`${errData.message}\n\nYour quota resets on ${resetDate.toLocaleString()}`);
+      }
+      else {
+        setSaveErrorMessage("Error saving highlight.");
+      }
+      console.error("Failed to visualize highlight", error);
+      setSaveError(true);
+    }
+  }
+
 
 
   // const handleHighlight = async () => {
@@ -305,142 +346,13 @@ export default function BookReaderPage() {
   // };
 
 
-  // const handleRegenerate = async () => {
-  //   if (!selectedHighlight || !selectedHighlight.imgUrl) return;
-  //
-  //   try {
-  //     const imgUrl = selectedHighlight.imgUrl;
-  //     const highlightId = imgUrl.split("/").pop()?.replace(".png", "");
-  //
-  //     if (!highlightId) {
-  //       console.error("Unable to extract highlight ID from imgUrl:", imgUrl);
-  //       return;
-  //     }
-  //
-  //     setModalVisible(true);
-  //
-  //     const putSuccess = await regenerateHighlightImage(
-  //       user,
-  //       bookId,
-  //       highlightId
-  //     );
-  //
-  //     if (putSuccess) {
-  //       const updatedHighlight = await fetchUpdatedHighlight(
-  //         user,
-  //         bookId,
-  //         highlightId
-  //       );
-  //
-  //       const timestampedUrl = `${updatedHighlight.imgUrl}?t=${new Date().getTime()}`;
-  //
-  //       setHighlights(
-  //         highlights.map((h) =>
-  //           h.location === selectedHighlight?.location
-  //             ? { ...h, imgUrl: timestampedUrl }
-  //             : h
-  //         )
-  //       );
-  //       setSelectedHighlight({ ...updatedHighlight, imgUrl: timestampedUrl });
-  //     }
-  //   } catch (error) {
-  //
-  //     console.error(
-  //       "Error in regenerating image or fetching updated highlight:",
-  //       error
-  //     );
-  //
-  //   } finally {
-  //     setModalVisible(false);
-  //   }
-  // };
 
 
-  // const handleGenerateNewImage = async (highlight: Selection) => {
-  //   if (!highlight || !highlight.text || !highlight.id) {
-  //     console.error("Invalid highlight selected for image generation");
-  //     return;
-  //   }
-  //
-  //   try {
-  //     // Show the loading modal
-  //     setSaveMessage("Generating image...");
-  //     setModalVisible(true);
-  //
-  //     // Generate the new image using the backend service
-  //     const newImageUrl = await generateHighlightImage(user, bookId, highlight.id);
-  //
-  //     // Update the highlights array with the new image URL
-  //     setHighlights((prevHighlights) =>
-  //       prevHighlights.map((h) =>
-  //         h.id === highlight.id ? { ...h, imgUrl: newImageUrl } : h
-  //       )
-  //     );
-  //
-  //     // Update the selected highlight if it matches the generated one
-  //     setSelectedHighlight((prev) => {
-  //       if (prev && prev.id === highlight.id) {
-  //         return {
-  //           ...prev,
-  //           imgUrl: newImageUrl,
-  //         }
-  //       }
-  //       return prev;
-  //     });
-  //
-  //     console.log("Image successfully generated:", newImageUrl);
-  //   } catch (error) {
-  //     console.error("Error while generating new image:", error);
-  //     setSaveError(true);
-  //   } finally {
-  //     // Hide the loading modal
-  //     setModalVisible(false);
-  //   }
-  // };
-
-
-  // handle custom text image generation
-  const handleCustomImagePrompt = async () => {
-    setSaveMessage("Revisualizing highlight...");
-    setModalVisible(true);
-
-    if (prompt) {
-      try {
-        const highlight = await visualizeHighlight(selectedAnnotation?.data.id, prompt);
-
-        updateAnnotation(selectedAnnotation!, {
-          img_url: highlight.img_url,
-          img_prompt: highlight.img_prompt,
-        })
-
-        setModalVisible(false);
-        setImageModalVisible(false);
-        setCustomPromptModelVisible(false);
-        return true;
-      }
-      catch (error: any) {
-        if (error.context?.status === 429) {
-          const errData: { status: number, message: string, reset: number } = await error.context.json();
-          const resetDate = new Date(errData.reset)
-          setSaveErrorMessage(`${errData.message}\n\nYour quota resets on ${resetDate.toLocaleString()}`);
-        }
-        else {
-          setSaveErrorMessage("Error revisualizing highlight.");
-        }
-        console.error("Failed to revisualize highlight", error);
-        setCustomPromptModelVisible(false);
-        setSaveError(true);
-      }
-    }
-    else {
-      setModalVisible(false);
-    }
-  }
 
 
   // Function to handle delete image highlight
   const deleteImageHighlight = async () => {
-    setLoading(true);
+    setLoadingBook(true);
     setError(null);
 
     try {
@@ -469,7 +381,7 @@ export default function BookReaderPage() {
       console.log(`Exception while calling the delete API: ${err}.`);
       setError("Error removing image.");
     } finally {
-      setLoading(false);
+      setLoadingBook(false);
     }
   };
 
@@ -477,7 +389,7 @@ export default function BookReaderPage() {
   // Delete highlight with no text from the model
   const handleDeletehighlight = async () => {
     if (selectedHighlight) {
-      setLoading(true);
+      setLoadingBook(true);
       setError(null);
 
       try {
@@ -495,7 +407,7 @@ export default function BookReaderPage() {
         console.log(`Exception while calling the delete API: ${err}.`);
         setError("Error removing image.");
       } finally {
-        setLoading(false);
+        setLoadingBook(false);
         setImageModalVisible(false);
       }
     }
@@ -503,7 +415,7 @@ export default function BookReaderPage() {
 
 
 
-  if (loading) {
+  if (loadingBook) {
     return <Loading message="Loading book..."/>
   }
 
@@ -523,17 +435,29 @@ export default function BookReaderPage() {
             src={bookUrl}
             fileSystem={useFileSystem}
             waitForLocationsReady
-            onPressAnnotation={(annotation) => {
+            onPressAnnotation={(annotation: VisualAnnotation) => {
               setSelectedAnnotation(annotation);
-              setPrompt(annotation.data.img_prompt);
-              setImageModalVisible(true);
+
+              if (annotation.data.img_url) {
+                router.push({
+                  pathname: "/(protected)/(book)/imageModal",
+                  params: {
+                    annotationObj: encodeURIComponent(JSON.stringify(annotation))
+                  }
+                });
+              }
+              else {
+                setShowEmptyModal(true);
+              }
+
+
             }}
             initialAnnotations={annotations}
             menuItems={[
               {
                 label: 'Visualize',
                 action: (cfiRange, text) => {
-                  handleVisualizeHighlight(cfiRange, text);
+                  handleVisualizeNewHighlight(cfiRange, text);
                   return true;
                 }
               },
@@ -567,124 +491,26 @@ export default function BookReaderPage() {
 
 
 
+        {/* Empty highlight modal */}
         <Modal
           animationType="slide"
           transparent={true}
-          visible={imageModalVisible}
-          onRequestClose={() => setImageModalVisible(false)}
+          visible={showEmptyModal}
+          onRequestClose={() => setShowEmptyModal(!showEmptyModal)}
         >
           <View style={styles.modalContainer}>
-            <View style={styles.imageModalView}>
-              {selectedAnnotation?.data?.img_url ? (
-                <>
-                  <View style={styles.imageHeader}>
 
-                    <Text style={{ fontSize: 20 }}>Generated image:</Text>
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowEmptyModal(false)}/>
 
-                    {/*
-                    <TouchableOpacity onPress={handleRegenerate}>
-                      <Icon
-                        name="refresh"
-                        size={19}
-                        color="#000000"
-                        style={styles.refreshIcon}
-                      />
-                    </TouchableOpacity>
-                    */}
-
-                    <TouchableOpacity
-                      onPress={() => {
-                        setPrompt(selectedAnnotation.data.img_prompt);
-                        setCustomPromptModelVisible(true);
-                      }}
-                    >
-                      <Feather
-                        name="edit"
-                        size={19}
-                        color="#000000"
-                        style={styles.editTextIcon}
-                      />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity onPress={deleteImageHighlight}>
-                      <Icon name="trash" size={19} style={styles.trashIcon} />
-                    </TouchableOpacity>
-
-                  </View>
-
-                  <Image
-                    source={{ uri: selectedAnnotation?.data?.img_url }}
-                    style={{ width: 300, height: 300 }}
-                    resizeMode="contain"
-                  />
-                </>
-              ) : (
-                <>
-                  <View style={styles.imageHeaderTrash}>
-                    <Icon
-                      name="trash"
-                      size={24}
-                      style={{ color: "gray", marginHorizontal: 10 }}
-                      onPress={handleDeletehighlight}
-                    />
-                  </View>
-                  <Text>No image available for this highlight.</Text>
-                  <TouchableOpacity
-                    style={styles.visualizeButton}
-                    onPress={() => {
-                    if (selectedHighlight && !selectedHighlight.img_url) {
-                      handleGenerateNewImage(selectedHighlight);
-                    } else {
-                      console.error("Highlight already has an image or is invalid");
-                    }
-                  }}
-                >
-                  <Text style={styles.buttonText}>Visualize</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-              <TouchableOpacity onPress={() => setImageModalVisible(false)}>
-                <Text style={styles.closeButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-
-
-        {/* Custom Prompt */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={custompromptModelVisible}
-          onRequestClose={() => setCustomPromptModelVisible(false)}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.imageModalView}>
-              <Text style={styles.title}>Customize prompt</Text>
-
-              <TextInput
-                style={styles.textInput}
-                value={prompt}
-                onChangeText={setPrompt}
-                multiline
-              />
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={styles.button}
-                  onPress={() => setCustomPromptModelVisible(false)}
-                >
-                  <Text style={styles.buttonText}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.button}
-                  onPress={() => {
-                    handleCustomImagePrompt();
-                  }}
-                >
-                  <Text style={styles.buttonText}>Regenerate</Text>
-                </TouchableOpacity>
-              </View>
+            <View style={styles.modalView}>
+              <Text>This highlight has no image.</Text>
+              <Pressable
+                onPress={() => {
+                  handleVisualizeExistingHighlight(selectedAnnotation!);
+                }}
+              >
+                <Text style={styles.closeButtonText}>Visualize</Text>
+              </Pressable>
             </View>
           </View>
         </Modal>
@@ -695,8 +521,8 @@ export default function BookReaderPage() {
         <Modal
           animationType="slide"
           transparent={true}
-          visible={modalVisible}
-          onRequestClose={() => setModalVisible(!modalVisible)}
+          visible={showLoadingModal}
+          onRequestClose={() => setShowLoadingModal(!showLoadingModal)}
         >
           <View style={styles.modalContainer}>
             <View style={styles.modalView}>
@@ -705,19 +531,21 @@ export default function BookReaderPage() {
               ) : (
                 <>
                   <Text>{saveErrorMessage}</Text>
-                  <TouchableOpacity
+                  <Pressable
                     onPress={() => {
-                      setModalVisible(false);
+                      setShowLoadingModal(false);
                       setSaveError(false);
                     }}
                   >
                     <Text style={styles.closeButtonText}>Close</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 </>
               )}
             </View>
           </View>
         </Modal>
+
+
 
       </View>
     </GestureHandlerRootView>

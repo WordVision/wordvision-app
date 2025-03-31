@@ -1,6 +1,7 @@
 import { Alert, Platform } from "react-native";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import * as Crypto from 'expo-crypto';
 
 // const backendURL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
 // const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://10.0.2.2:8000";
@@ -460,9 +461,11 @@ export async function createHighlight(
 
 export async function visualizeHighlight(highlightId: string, prompt: string): Promise<Highlight> {
 
+  const image_id = Crypto.randomUUID();
+
   const genImageRes = await supabase.functions.invoke<{img_url: string}>('generate-image', {
     body: {
-      image_id: highlightId,
+      image_id,
       prompt,
     },
   })
@@ -473,6 +476,37 @@ export async function visualizeHighlight(highlightId: string, prompt: string): P
   }
 
   if (genImageRes.data) {
+
+    // Get old img url
+    const getHighlightRes = await supabase.from("highlights")
+      .select("img_url")
+      .eq("id", highlightId)
+      .limit(1)
+      .single();
+
+    if (getHighlightRes.error) {
+      console.error("Function visualizeHighlight: getHighlightRes Error")
+      throw getHighlightRes.error
+    }
+
+    const oldImgUrl: string = getHighlightRes.data.img_url;
+
+    if (oldImgUrl) {
+      const imgPath = oldImgUrl.split("images/")[1];
+
+      // Delete old image
+      const deleteImgRes = await supabase.storage.from("images").remove([imgPath]);
+
+      if (deleteImgRes.error) {
+        console.error("Function visualizeHighlight: deleteImgRes Error")
+        throw deleteImgRes.error
+      }
+    }
+
+
+
+
+    // Update highlight with new image url
     const updateHighlightRes = await supabase.from("highlights")
       .update({
         img_url: genImageRes.data.img_url,
@@ -485,9 +519,10 @@ export async function visualizeHighlight(highlightId: string, prompt: string): P
       console.error("function visualizeHighlight: updateHighlightRes Error")
       throw updateHighlightRes.error;
     }
+
   }
 
-  // Get newly created highlight id
+  // Get updated highlight details
   const { data, error } = await supabase.from("highlights")
     .select("*")
     .eq("id", highlightId)

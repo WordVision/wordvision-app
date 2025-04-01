@@ -26,6 +26,6 @@ ios/
 
 .vscode/
 
-scripts/local-env/supabase
-scripts/local-env/data.sql
-scripts/local-env/schema.sql
+/scripts/local-env/supabase
+/scripts/local-env/data.sql
+/scripts/local-env/schema.sql

@@ -25,3 +25,5 @@ android/
 ios/
 
 .vscode/
+
+/scripts/.venv

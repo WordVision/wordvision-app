@@ -78,7 +78,7 @@
     "jest-expo": "~52.0.4",
     "prettier": "^3.3.3",
     "react-test-renderer": "18.2.0",
-    "supabase": "^2.15.8",
+    "supabase": "^2.20.5",
     "typescript": "~5.3.3"
   },
   "private": true

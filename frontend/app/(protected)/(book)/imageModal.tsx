@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { Image } from 'expo-image';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, Image } from 'react-native';
 import Animated, { SlideInDown } from 'react-native-reanimated';
 import { VisualAnnotation } from './bookReader';
 import Feather from '@expo/vector-icons/Feather';
@@ -49,7 +48,7 @@ export default function ImageModal() {
         </View>
 
         <Image
-          source={imgUrl}
+          source={{uri: imgUrl}}
           style={s.image}
         />
       </Animated.View>

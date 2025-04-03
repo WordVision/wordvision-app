@@ -52,8 +52,8 @@ PGPASSWORD=postgres psql -h localhost -U postgres -p 54322 -c '\l' > /dev/null |
   exit 1
 }
 
-echo "📦 Dumping local data to $SEED_SQL..."
-supabase db dump --data-only --file "$SEED_SQL" --local --use-copy
+echo "📦 Dumping data from production to $SEED_SQL..."
+supabase db dump --data-only --file "$SEED_SQL" --linked --use-copy
 
 LATEST_MIGRATION="$(ls -t $SUPABASE_DIR/migrations/*.sql | head -n 1)"
 
@@ -65,10 +65,8 @@ fi
 echo "🧼 Re-applying latest schema: $(basename "$LATEST_MIGRATION")"
 PGPASSWORD=postgres psql -h localhost -U postgres -p 54322 -f "$LATEST_MIGRATION"
 
-echo "🌱 Re-seeding data from $SEED_SQL"
+echo "🔁 Final refresh: dump fresh data and reapply"
+supabase db dump --data-only -f "$SEED_SQL" --linked --use-copy
 PGPASSWORD=postgres psql -h localhost -U postgres -p 54322 -f "$SEED_SQL"
-
-echo "📡 Opening psql shell (type \\q to exit)"
-PGPASSWORD=postgres psql -h localhost -U postgres -p 54322
 
 echo "✅ Local Supabase is up and fully synced with latest schema + data!"

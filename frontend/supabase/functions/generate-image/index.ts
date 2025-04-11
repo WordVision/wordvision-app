@@ -2,114 +2,129 @@ import { HfInference } from "@huggingface/inference";
 import { createClient } from "@supabase/supabase-js";
 import { Redis } from "@upstash/redis";
 import { Ratelimit } from "@upstash/ratelimit";
+import { SupabaseClient } from "../_shared/supabaseClient.ts";
 
 Deno.serve(async (req: Request) => {
+  try {
+    console.log("📩 Received request");
 
-  // Get request body data
-  const { image_id, prompt } = await req.json();
+    const { image_id, prompt } = await req.json();
+    console.log("📝 Request body parsed:", { image_id, prompt });
 
-  // Setup supabase client
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-    {
-      global: { headers: { Authorization: req.headers.get("Authorization")! } },
-    },
-  );
+    const supabase = SupabaseClient(req);
+    console.log("🔑 Supabase client initialized");
 
-  // Get user session
-  const getUserRes = await supabase.auth.getUser();
+    const getUserRes = await supabase.auth.getUser();
+    console.log("🙋‍♂️ Fetched user session:", getUserRes);
 
-  // Handle any auth errors
-  if (getUserRes.error) {
-    return new Response(
-      JSON.stringify(getUserRes.error),
-      {
-        status: getUserRes.error?.status,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    );
-  }
+    if (getUserRes.error) {
+      const status = getUserRes.error.status ?? 401;
+      console.error("❌ Auth error:", getUserRes.error);
+      return new Response(
+        JSON.stringify({ error: getUserRes.error.message ?? "Unauthorized" }),
+        {
+          status,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
 
-  // Get user id from session
-  const user_id = getUserRes.data.user.id;
+    const user_id = getUserRes.data.user.id;
+    console.log("👤 Authenticated user ID:", user_id);
 
-  // Check rate limits if user is allowed to generate an image
-  const limit: number = 2; // 2 requests
-  const rate: string = "24h"; // per 24 hours
+    // const limit = 2;
+    // const rate = "24h";
 
-  const redis = new Redis({
-    url: Deno.env.get("UPSTASH_REDIS_REST_URL")!,
-    token: Deno.env.get("UPSTASH_REDIS_REST_TOKEN")!,
-  })
+    // const redis = new Redis({
+    //   url: Deno.env.get("UPSTASH_REDIS_REST_URL")!,
+    //   token: Deno.env.get("UPSTASH_REDIS_REST_TOKEN")!,
+    // });
 
-  const ratelimit = new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(limit, rate),
-    analytics: true,
-    prefix: "@upstash/ratelimit",
-  });
+    // const ratelimit = new Ratelimit({
+    //   redis,
+    //   limiter: Ratelimit.slidingWindow(limit, rate),
+    //   analytics: true,
+    //   prefix: "@upstash/ratelimit",
+    // });
 
-  const identifier = user_id;
-  const { success } = await ratelimit.limit(identifier);
+    // console.log("📊 Checking rate limit for:", user_id);
+    // const { success } = await ratelimit.limit(user_id);
 
-  if (!success) {
-    const { reset } = await ratelimit.getRemaining(identifier);
+    // if (!success) {
+    //   const { reset } = await ratelimit.getRemaining(user_id);
+    //   console.warn("🚫 Rate limit exceeded. Reset at:", reset);
 
-    return new Response(JSON.stringify({
-        status: 429,
-        message: `Image generation limit exceeded. You only have ${limit} requests per day`,
-        reset
-      }), {
-        status: 429,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    )
-  }
+    //   return new Response(
+    //     JSON.stringify({
+    //       status: 429,
+    //       message: `Image generation limit exceeded. You only have ${limit} requests per day`,
+    //       reset,
+    //     }),
+    //     {
+    //       status: 429,
+    //       headers: {
+    //         "Content-Type": "application/json",
+    //       },
+    //     }
+    //   );
+    // }
 
-  // The code below runs only if user passes rate limit check
-  const image = await generateImage(prompt);
+    // console.log("✅ Rate limit passed. Generating image...");
 
-  // save image to storage with highlight id as name
-  const uploadToStorageRes = await supabase.storage
-    .from("images")
-    .upload(`${image_id}.jpg`, image, {
-      contentType: "image/jpeg",
-      cacheControl: "3600",
-      upsert: true,
+    const image = await generateImage(prompt);
+    console.log("🖼️ Image generated");
+
+    const uploadToStorageRes = await supabase.storage
+      .from("images")
+      .upload(`${image_id}.jpg`, image, {
+        contentType: "image/jpeg",
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (uploadToStorageRes.error) {
+      console.error("📦 Upload to storage failed:", uploadToStorageRes.error);
+      return new Response(JSON.stringify(uploadToStorageRes.error), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("📤 Image uploaded to storage");
+
+    const imgPath = uploadToStorageRes.data.path;
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("images").getPublicUrl(imgPath);
+
+    console.log("🌐 Public image URL generated:", publicUrl);
+
+    return Response.json({
+      img_url: publicUrl,
     });
+  } catch (err: unknown) {
+    const errorMessage =
+      err instanceof Error ? err.message : "Unhandled error occurred";
+    console.error("💥 Top-level error:", err);
 
-  // Handle any storage errors
-  if (uploadToStorageRes.error) {
     return new Response(
-      JSON.stringify(uploadToStorageRes.error),
+      JSON.stringify({
+        status: 500,
+        message: "Unhandled server error",
+        error: errorMessage,
+      }),
       {
-        status: 500, // server error
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
     );
   }
-
-  // Get image public url
-  const imgPath = uploadToStorageRes.data.path;
-  const { data: { publicUrl }} = supabase.storage.from("images").getPublicUrl(imgPath);
-
-  return Response.json({
-    img_url: publicUrl
-  });
-
 });
 
-// This function can be changed as needed
-// (e.g. if we need to switch AI models or providers)
 async function generateImage(prompt: string): Promise<Blob> {
+  console.log("🤖 Calling Hugging Face with prompt:", prompt);
   const hf = new HfInference(Deno.env.get("HUGGING_FACE_ACCESS_TOKEN"));
+  console.log("🔐 Loaded HF token:", Deno.env.get("HUGGING_FACE_ACCESS_TOKEN"));
 
   const image = await hf.textToImage(
     {
@@ -118,8 +133,8 @@ async function generateImage(prompt: string): Promise<Blob> {
     },
     {
       use_cache: false,
-    },
+    }
   );
-
+  console.log("🎨 Hugging Face returned image blob");
   return image;
 }

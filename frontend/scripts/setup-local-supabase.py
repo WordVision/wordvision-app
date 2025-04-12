@@ -12,6 +12,7 @@ SUPABASE_DIR = ROOT_DIR / 'frontend' / 'supabase'
 SEED_SQL = SUPABASE_DIR / 'seed.sql'
 MIGRATIONS_DIR = SUPABASE_DIR / 'migrations'
 UPLOAD_SCRIPT = SCRIPT_DIR / "upload_sample_books.py"
+PROD_STORAGE_SQL = SUPABASE_DIR / "prod_storage.sql"
 
 # 🧪 Confirm .env exists
 if not SUPABASE_ENV_PATH.exists():
@@ -59,6 +60,12 @@ run(f"PGPASSWORD=postgres psql -h localhost -U postgres -p 54322 -f {latest_migr
 # 🌱 Seed the database with predefined data
 print(f"🌾 Seeding local database using {SEED_SQL}")
 run(f"PGPASSWORD=postgres psql -h localhost -U postgres -p 54322 -f {SEED_SQL}")
+
+if PROD_STORAGE_SQL.exists():
+    print(f"🔁 Applying storage policies from {PROD_STORAGE_SQL.name}")
+    run(f"PGPASSWORD=postgres psql -h localhost -U postgres -p 54322 -d postgres -f {PROD_STORAGE_SQL}")
+else:
+    print(f"⚠️ Could not find {PROD_STORAGE_SQL}")
 
 print("✅ Local Supabase is up with schema and seed data applied!")
 

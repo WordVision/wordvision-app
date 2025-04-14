@@ -16,6 +16,7 @@ This guide will assist you in setting up the project for development.
   - [Clone the Project](#clone-the-project)
   - [Setup Environment Variables](#setup-environment-variables)
   - [Install Dependencies](#install-dependencies)
+  - [Setting up the Supabase Development Environment](#setting-up-the-supabase-development-environment)
 - [Running the Project](#running-the-project)
   - [Running on Android](#running-on-android)
   - [Running on IOS](#running-on-ios)
@@ -104,6 +105,66 @@ CommandError: No development build (com.wordvision.WordVision) for this project 
 ### Running on Web
 
 > Needs more work
+
+## Setting up the Supabase Development Environment
+
+> This project relies on Supabase to handle backend logic, storage, and database. The local environment emulates the full backend experience without relying on the hosted version.
+
+### Step 1: Install Supabase CLI
+
+```bash
+npm install -g supabase
+```
+
+Or on macOS:
+
+```bash
+brew install supabase/tap/supabase
+```
+
+### Step 2: Set up Docker
+
+Install [Docker Desktop](https://www.docker.com/products/docker-desktop) and ensure it’s running.
+
+---
+
+### Step 3: Configure Environment Variables
+
+Ask for the .env file with all the keys.
+
+---
+
+### Step 4: Set up and Run the Supabase Setup Script
+
+```bash
+cd frontend/scripts
+
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+pip install --upgrade pip
+pip install python-dotenv boto3
+
+python3 setup-local-supabase.py
+```
+
+This will:
+
+- Initialize Supabase locally
+- Start the database
+- Apply migrations
+- Seed with test data
+- Upload EPUBs and images
+
+---
+
+### Step 5: Serve Edge Functions
+
+```bash
+supabase functions serve --env-file ./supabase/.env.local
+```
+
+---
 
 ## Add a book to the library
 

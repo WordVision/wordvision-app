@@ -120,7 +120,10 @@ Or on macOS:
 
 ```bash
 brew install supabase/tap/supabase
+
 ```
+
+Or check out the instructions on the [Supabase GitHub Repo](https://github.com/supabase/cli?tab=readme-ov-file#install-the-cli) for more up to date instructions depending on your Operating System
 
 ### Step 2: Set up Docker
 

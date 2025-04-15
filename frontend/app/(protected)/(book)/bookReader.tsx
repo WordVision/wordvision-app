@@ -176,7 +176,7 @@ export default function BookReaderPage() {
             console.log("Downloading Book...");
 
             try {
-              const output = await File.downloadFileAsync(url, destination);
+              const output = await File.downloadFileAsync(url, file);
               if (output.exists) {
                 console.log("Book downloaded!");
                 setBookUrl(output.uri);

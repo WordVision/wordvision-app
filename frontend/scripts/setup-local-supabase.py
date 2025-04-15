@@ -27,6 +27,11 @@ if not ACCESS_TOKEN:
     print("❌ Missing SUPABASE_ACCESS_TOKEN in .env")
     sys.exit(1)
 
+PROJECT_ID = os.getenv('EXPO_PUBLIC_SUPABASE_PROJECT_ID')
+if not PROJECT_ID:
+    print("❌ Missing EXPO_PUBLIC_SUPABASE_PROJECT_ID in .env")
+    sys.exit(1)
+
 def run(cmd, env=None):
     print(f"▶️ {cmd}")
     subprocess.run(cmd, shell=True, check=True, env=env or os.environ)
@@ -36,6 +41,9 @@ run("supabase init --force --workdir ../")
 
 print("🔐 Logging into Supabase CLI with access token...")
 run(f"echo '{ACCESS_TOKEN}' | supabase login")
+
+print("🔗 Linking to wordvision project")
+run(f"supabase link --project-ref {PROJECT_ID}")
 
 print("🐘 Starting local Supabase database...")
 run("supabase db start")

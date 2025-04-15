@@ -32,7 +32,7 @@ def run(cmd, env=None):
     subprocess.run(cmd, shell=True, check=True, env=env or os.environ)
 
 print("🚀 Initializing Supabase project...")
-run("supabase init --force")
+run("supabase init --force --workdir ../")
 
 print("🔐 Logging into Supabase CLI with access token...")
 run(f"echo '{ACCESS_TOKEN}' | supabase login")

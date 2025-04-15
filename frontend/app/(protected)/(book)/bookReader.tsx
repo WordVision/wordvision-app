@@ -9,13 +9,11 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useReader, Reader, Annotation } from "@epubjs-react-native/core";
-import { useFileSystem } from '@epubjs-react-native/expo-file-system';
-import { File, Paths, Directory } from 'expo-file-system/next';
+import { useFileSystem } from "@epubjs-react-native/expo-file-system";
+import { File, Paths, Directory } from "expo-file-system/next";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { FontAwesome5 } from '@expo/vector-icons';
-import {
-  BottomSheetModal,
-} from '@gorhom/bottom-sheet';
+import { FontAwesome5 } from "@expo/vector-icons";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { supabase } from "@/lib/supabase";
 import Loading from "@/components/Loading";
@@ -28,15 +26,13 @@ import {
   createHighlight,
 } from "@/utilities/backendService";
 
-
 export type VisualAnnotation = Annotation<{
   id: string;
   img_url: string;
   img_prompt: string;
-}>
+}>;
 
 export default function BookReaderPage() {
-
   /*
     TODO: Implement functions in backend service
 
@@ -54,11 +50,7 @@ export default function BookReaderPage() {
     - return boolean based on success
   */
 
-  const {
-    goToLocation,
-    addAnnotation,
-    updateAnnotation,
-  } = useReader();
+  const { goToLocation, addAnnotation, updateAnnotation } = useReader();
 
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
 
@@ -71,7 +63,8 @@ export default function BookReaderPage() {
   const colorScheme = useColorScheme();
 
   const [annotations, setAnnotations] = useState<VisualAnnotation[]>([]);
-  const [selectedAnnotation, setSelectedAnnotation] = useState<VisualAnnotation | null>(null);
+  const [selectedAnnotation, setSelectedAnnotation] =
+    useState<VisualAnnotation | null>(null);
   const [bookUrl, setBookUrl] = useState<string | null>(null);
   const [loadingBook, setLoadingBook] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,9 +73,12 @@ export default function BookReaderPage() {
   const [imageModalVisible, setImageModalVisible] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<boolean>(false);
   const [saveMessage, setSaveMessage] = useState<string>("Saving highlight...");
-  const [saveErrorMessage, setSaveErrorMessage] = useState<string>("Error saving highlight.");
-  const [selectedHighlight, setSelectedHighlight] = useState<Highlight | null>(null);
-
+  const [saveErrorMessage, setSaveErrorMessage] = useState<string>(
+    "Error saving highlight."
+  );
+  const [selectedHighlight, setSelectedHighlight] = useState<Highlight | null>(
+    null
+  );
 
   // Navigation options as a stack child
   useEffect(() => {
@@ -90,29 +86,38 @@ export default function BookReaderPage() {
       title: "Reader",
       headerShown: true,
       headerRight: () => (
-        <View style={{
-          display: "flex",
-          flexDirection: "row",
-          gap: 16,
-        }}>
+        <View
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            gap: 16,
+          }}
+        >
           <Pressable
-            style={({pressed}) => ({ opacity: pressed ? 0.3 : 1 })}
+            style={({ pressed }) => ({ opacity: pressed ? 0.3 : 1 })}
             onPress={() => highlightsListRef.current?.present()}
           >
-            <FontAwesome5 name="quote-left" size={20} color={colorScheme === "dark" ? "white" : "black"} />
+            <FontAwesome5
+              name="quote-left"
+              size={20}
+              color={colorScheme === "dark" ? "white" : "black"}
+            />
           </Pressable>
 
           <Pressable
-            style={({pressed}) => ({ opacity: pressed ? 0.3 : 1 })}
+            style={({ pressed }) => ({ opacity: pressed ? 0.3 : 1 })}
             onPress={() => tableOfContentsRef.current?.present()}
           >
-            <FontAwesome5 name="list-ul" size={20} color={colorScheme === "dark" ? "white" : "black"} />
+            <FontAwesome5
+              name="list-ul"
+              size={20}
+              color={colorScheme === "dark" ? "white" : "black"}
+            />
           </Pressable>
         </View>
       ),
     });
   }, [navigation]);
-
 
   // Fetch book data
   useEffect(() => {
@@ -127,7 +132,8 @@ export default function BookReaderPage() {
 
       const database = await supabase
         .from("books")
-        .select(`
+        .select(
+          `
           id, filename,
           highlights(
             id,
@@ -136,71 +142,77 @@ export default function BookReaderPage() {
             img_url,
             img_prompt
           )
-        `)
+        `
+        )
         .eq("id", bookId)
         .limit(1)
-        .single()
+        .single();
 
-      console.log({databaseData: database.data});
+      console.log({ databaseData: database.data });
 
       if (database.data) {
-        const file = new File(Paths.cache, database.data.id, database.data.filename);
+        const file = new File(
+          Paths.cache,
+          database.data.id,
+          database.data.filename
+        );
         if (file.exists) {
-          console.log("Found downloaded book.")
-          console.log({file: file.uri})
+          console.log("Found downloaded book.");
+          console.log({ file: file.uri });
           setBookUrl(file.uri);
-        }
-        else {
+        } else {
           const destination = new Directory(Paths.cache, database.data.id);
           if (!destination.exists) {
             destination.create();
           }
 
-          const storage = await supabase.storage.from("books").createSignedUrl(database.data.filename, 3600)
-          console.log({storage})
+          const storage = await supabase.storage
+            .from("books")
+            .createSignedUrl(database.data.filename, 3600);
+          console.log({ storage });
 
           if (storage.data) {
-
             const url = storage.data.signedUrl;
-            console.log("Downloading Book...")
+            console.log("Downloading Book...");
 
             try {
-              const output = await File.downloadFileAsync(url, destination);
+              const output = await File.downloadFileAsync(url, file);
               if (output.exists) {
-                console.log("Book downloaded!")
+                console.log("Book downloaded!");
                 setBookUrl(output.uri);
               }
-            }
-            catch (error) {
+            } catch (error) {
               console.error(error);
             }
-          }
-          else {
+          } else {
             console.error("Error fetching book from storage:", storage.error);
             setError("Error fetching book.");
           }
         }
 
         if (database.data.highlights.length > 0) {
-          setAnnotations(database.data.highlights.map(annotation => {
-            const a: VisualAnnotation = {
-              cfiRange: annotation.location,
-              data: {
-                id: annotation.id,
-                img_url: annotation.img_url,
-                img_prompt: annotation.img_prompt,
-              },
-              sectionIndex: 0, // not sure why but Annotation type needs this
-              cfiRangeText: annotation.text,
-              type: 'highlight',
-            }
-            return a;
-          }))
+          setAnnotations(
+            database.data.highlights.map((annotation) => {
+              const a: VisualAnnotation = {
+                cfiRange: annotation.location,
+                data: {
+                  id: annotation.id,
+                  img_url: annotation.img_url,
+                  img_prompt: annotation.img_prompt,
+                },
+                sectionIndex: 0, // not sure why but Annotation type needs this
+                cfiRangeText: annotation.text,
+                type: "highlight",
+              };
+              return a;
+            })
+          );
         }
-
-      }
-      else {
-        console.error("Error fetching book data from database:", database.error);
+      } else {
+        console.error(
+          "Error fetching book data from database:",
+          database.error
+        );
         setError("Error fetching book.");
       }
 
@@ -213,54 +225,57 @@ export default function BookReaderPage() {
     // setLoading(false);
   }, [bookId]);
 
-
-  const handleVisualizeNewHighlight = async (cfiRange: string, text: string) => {
+  const handleVisualizeNewHighlight = async (
+    cfiRange: string,
+    text: string
+  ) => {
     setSaveMessage("Visualizing highlight...");
     setShowLoadingModal(true);
 
     try {
       const newHighlight = await createHighlight(bookId, cfiRange, text, true);
 
-      addAnnotation(
-        'highlight',
-        cfiRange,
-        {
-          id: newHighlight.id,
-          img_url: newHighlight.img_url,
-          img_prompt: newHighlight.img_prompt,
-        },
-      );
+      addAnnotation("highlight", cfiRange, {
+        id: newHighlight.id,
+        img_url: newHighlight.img_url,
+        img_prompt: newHighlight.img_prompt,
+      });
 
       setShowLoadingModal(false);
       return true;
-    }
-    catch (error: any) {
+    } catch (error: any) {
       if (error.context?.status === 429) {
-        const errData: { status: number, message: string, reset: number } = await error.context.json();
-        const resetDate = new Date(errData.reset)
-        setSaveErrorMessage(`${errData.message}\n\nYour quota resets on ${resetDate.toLocaleString()}`);
-      }
-      else {
+        const errData: { status: number; message: string; reset: number } =
+          await error.context.json();
+        const resetDate = new Date(errData.reset);
+        setSaveErrorMessage(
+          `${errData.message}\n\nYour quota resets on ${resetDate.toLocaleString()}`
+        );
+      } else {
         setSaveErrorMessage("Error saving highlight.");
       }
       console.error("Failed to visualize highlight", error);
       setSaveError(true);
     }
-  }
+  };
 
-  const handleVisualizeExistingHighlight = async (annotation: VisualAnnotation) => {
-
+  const handleVisualizeExistingHighlight = async (
+    annotation: VisualAnnotation
+  ) => {
     setSaveMessage("Visualizing highlight...");
     setShowLoadingModal(true);
 
     try {
-      const highlight = await visualizeHighlight(annotation.data.id, annotation.cfiRangeText);
+      const highlight = await visualizeHighlight(
+        annotation.data.id,
+        annotation.cfiRangeText
+      );
 
       updateAnnotation(annotation, {
         id: annotation.data.id,
         img_url: highlight.img_url,
         img_prompt: highlight.img_prompt,
-      })
+      });
 
       annotation.data.img_url = highlight.img_url!;
       annotation.data.img_prompt = highlight.img_prompt!;
@@ -271,27 +286,26 @@ export default function BookReaderPage() {
       router.push({
         pathname: "/(protected)/(book)/imageModal",
         params: {
-          annotationObj: encodeURIComponent(JSON.stringify(annotation))
-        }
+          annotationObj: encodeURIComponent(JSON.stringify(annotation)),
+        },
       });
 
       return true;
-    }
-    catch (error: any) {
+    } catch (error: any) {
       if (error.context?.status === 429) {
-        const errData: { status: number, message: string, reset: number } = await error.context.json();
-        const resetDate = new Date(errData.reset)
-        setSaveErrorMessage(`${errData.message}\n\nYour quota resets on ${resetDate.toLocaleString()}`);
-      }
-      else {
+        const errData: { status: number; message: string; reset: number } =
+          await error.context.json();
+        const resetDate = new Date(errData.reset);
+        setSaveErrorMessage(
+          `${errData.message}\n\nYour quota resets on ${resetDate.toLocaleString()}`
+        );
+      } else {
         setSaveErrorMessage("Error saving highlight.");
       }
       console.error("Failed to visualize highlight", error);
       setSaveError(true);
     }
-  }
-
-
+  };
 
   // const handleHighlight = async () => {
   //   if (rendition && selection) {
@@ -345,11 +359,6 @@ export default function BookReaderPage() {
   //   setContextMenu({ visible: false, x: 0, y: 0 });
   // };
 
-
-
-
-
-
   // Function to handle delete image highlight
   const deleteImageHighlight = async () => {
     setLoadingBook(true);
@@ -385,7 +394,6 @@ export default function BookReaderPage() {
     }
   };
 
-
   // Delete highlight with no text from the model
   const handleDeletehighlight = async () => {
     if (selectedHighlight) {
@@ -413,10 +421,8 @@ export default function BookReaderPage() {
     }
   };
 
-
-
   if (loadingBook) {
-    return <Loading message="Loading book..."/>
+    return <Loading message="Loading book..." />;
   }
 
   if (error) {
@@ -442,24 +448,23 @@ export default function BookReaderPage() {
                 router.push({
                   pathname: "/(protected)/(book)/imageModal",
                   params: {
-                    annotationObj: encodeURIComponent(JSON.stringify(annotation))
-                  }
+                    annotationObj: encodeURIComponent(
+                      JSON.stringify(annotation)
+                    ),
+                  },
                 });
-              }
-              else {
+              } else {
                 setShowEmptyModal(true);
               }
-
-
             }}
             initialAnnotations={annotations}
             menuItems={[
               {
-                label: 'Visualize',
+                label: "Visualize",
                 action: (cfiRange, text) => {
                   handleVisualizeNewHighlight(cfiRange, text);
                   return true;
-                }
+                },
               },
             ]}
           />
@@ -467,18 +472,14 @@ export default function BookReaderPage() {
           <Text>Book URL is not available.</Text>
         )}
 
-
-
         <TableOfContents
           ref={tableOfContentsRef}
           onPressSection={(section) => {
-            goToLocation(section.href.split('/')[1]);
+            goToLocation(section.href.split("/")[1]);
             tableOfContentsRef.current?.dismiss();
           }}
           onClose={() => tableOfContentsRef.current?.dismiss()}
         />
-
-
 
         <HighlightsList
           ref={highlightsListRef}
@@ -489,8 +490,6 @@ export default function BookReaderPage() {
           onClose={() => highlightsListRef.current?.dismiss()}
         />
 
-
-
         {/* Empty highlight modal */}
         <Modal
           animationType="slide"
@@ -499,8 +498,10 @@ export default function BookReaderPage() {
           onRequestClose={() => setShowEmptyModal(!showEmptyModal)}
         >
           <View style={styles.modalContainer}>
-
-            <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowEmptyModal(false)}/>
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={() => setShowEmptyModal(false)}
+            />
 
             <View style={styles.modalView}>
               <Text>This highlight has no image.</Text>
@@ -514,8 +515,6 @@ export default function BookReaderPage() {
             </View>
           </View>
         </Modal>
-
-
 
         {/* Saving highlight spinner */}
         <Modal
@@ -544,13 +543,10 @@ export default function BookReaderPage() {
             </View>
           </View>
         </Modal>
-
-
-
       </View>
     </GestureHandlerRootView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   contextMenu: {
@@ -667,11 +663,11 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 16,
-    color: 'white',
-    fontWeight: 'bold'
+    color: "white",
+    fontWeight: "bold",
   },
   imageHeaderTrash: {
-    position: 'absolute',
+    position: "absolute",
     top: 11,
     right: 11,
     zIndex: 5,
@@ -712,6 +708,4 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginLeft: 10,
   },
-
 });
-

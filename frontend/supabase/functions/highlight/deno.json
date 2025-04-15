@@ -1,8 +1,11 @@
 {
-    "imports": {
-        "@huggingface/inference": "npm:@huggingface/inference",
-        "@supabase/supabase-js": "npm:@supabase/supabase-js",
-        "@upstash/redis": "npm:@upstash/redis",
-        "@upstash/ratelimit": "https://cdn.skypack.dev/@upstash/ratelimit@latest"
-    }
+  "imports": {
+    "@huggingface/inference": "npm:@huggingface/inference",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js",
+    "@upstash/redis": "npm:@upstash/redis",
+    "@upstash/ratelimit": "https://cdn.skypack.dev/@upstash/ratelimit@latest"
+  },
+  "compilerOptions": {
+    "allowImportingTsExtensions": true
+  }
 }

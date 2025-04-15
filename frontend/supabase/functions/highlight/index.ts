@@ -1,36 +1,28 @@
+// frontend/supabase/functions/highlight/index.ts
 import { HfInference } from "@huggingface/inference";
 import { createClient } from "@supabase/supabase-js";
 import { Redis } from "@upstash/redis";
 import { Ratelimit } from "@upstash/ratelimit";
+import { SupabaseClient } from "../_shared/supabaseClient.ts";
 
 Deno.serve(async (req: Request) => {
-
   // Get request body data
   const { book_id, text, location, visualize } = await req.json();
 
   // Setup supabase client
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-    {
-      global: { headers: { Authorization: req.headers.get("Authorization")! } },
-    },
-  );
+  const supabase = SupabaseClient(req);
 
   // Get user session
   const getUserRes = await supabase.auth.getUser();
 
   // Handle any auth errors
   if (getUserRes.error) {
-    return new Response(
-      JSON.stringify(getUserRes.error),
-      {
-        status: getUserRes.error?.status,
-        headers: {
-          "Content-Type": "application/json",
-        },
+    return new Response(JSON.stringify(getUserRes.error), {
+      status: getUserRes.error?.status,
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+    });
   }
 
   // Get user id from session
@@ -45,7 +37,7 @@ Deno.serve(async (req: Request) => {
     const redis = new Redis({
       url: Deno.env.get("UPSTASH_REDIS_REST_URL")!,
       token: Deno.env.get("UPSTASH_REDIS_REST_TOKEN")!,
-    })
+    });
 
     const ratelimit = new Ratelimit({
       redis,
@@ -57,25 +49,26 @@ Deno.serve(async (req: Request) => {
     const identifier = user_id;
     const { success } = await ratelimit.limit(identifier);
     if (!success) {
-
       const { reset } = await ratelimit.getRemaining(identifier);
 
-      return new Response(JSON.stringify({
+      return new Response(
+        JSON.stringify({
           status: 429,
           message: `Image generation limit exceeded. You only have ${limit} requests per day`,
-          reset
-        }), {
+          reset,
+        }),
+        {
           status: 429,
           headers: {
             "Content-Type": "application/json",
           },
         }
-      )
+      );
     }
   }
 
   // ========
-  // If the user DOES NOT want to "visualize" or they are WITHIN their image generation quota, 
+  // If the user DOES NOT want to "visualize" or they are WITHIN their image generation quota,
   // the following code will run.
   // ========
 
@@ -86,15 +79,12 @@ Deno.serve(async (req: Request) => {
 
   // Handle any database errors
   if (saveHighlightRes.error) {
-    return new Response(
-      JSON.stringify(saveHighlightRes.error),
-      {
-        status: saveHighlightRes.status,
-        headers: {
-          "Content-Type": "application/json",
-        },
+    return new Response(JSON.stringify(saveHighlightRes.error), {
+      status: saveHighlightRes.status,
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+    });
   }
 
   // Get newly created highlight id
@@ -108,20 +98,16 @@ Deno.serve(async (req: Request) => {
 
   // Handle any database errors
   if (selHighIdRes.error) {
-    return new Response(
-      JSON.stringify(selHighIdRes.error),
-      {
-        status: selHighIdRes.status,
-        headers: {
-          "Content-Type": "application/json",
-        },
+    return new Response(JSON.stringify(selHighIdRes.error), {
+      status: selHighIdRes.status,
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+    });
   }
 
   // if user wants to visualize
   if (visualize) {
-
     // Generate image
     const image = await generateImage(text);
 
@@ -136,21 +122,18 @@ Deno.serve(async (req: Request) => {
 
     // Handle any storage errors
     if (uploadToStorageRes.error) {
-      return new Response(
-        JSON.stringify(uploadToStorageRes.error),
-        {
-          status: 500, // server error
-          headers: {
-            "Content-Type": "application/json",
-          },
+      return new Response(JSON.stringify(uploadToStorageRes.error), {
+        status: 500, // server error
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+      });
     }
 
     // Get image public url
-    const imgUrlRes = supabase.storage.from("images").getPublicUrl(
-      uploadToStorageRes.data.path!,
-    );
+    const imgUrlRes = supabase.storage
+      .from("images")
+      .getPublicUrl(uploadToStorageRes.data.path!);
 
     // Update highlight with imgurl
     const updateHighlightRes = await supabase
@@ -160,15 +143,12 @@ Deno.serve(async (req: Request) => {
 
     // Handle any database errors
     if (updateHighlightRes.error) {
-      return new Response(
-        JSON.stringify(updateHighlightRes.error),
-        {
-          status: updateHighlightRes.status,
-          headers: {
-            "Content-Type": "application/json",
-          },
+      return new Response(JSON.stringify(updateHighlightRes.error), {
+        status: updateHighlightRes.status,
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+      });
     }
 
     // Return newly created highlight metadata as success
@@ -205,7 +185,7 @@ async function generateImage(prompt: string) {
     },
     {
       use_cache: false,
-    },
+    }
   );
 
   return image;

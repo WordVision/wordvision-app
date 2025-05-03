@@ -547,26 +547,29 @@ export async function improvePrompt(
   passage: string
 ): Promise<string> {
   const prompt = `Create a prompt for image generation based on the book "${bookTitle}", for the passage: "${passage}"`;
+  console.log("Prompt: ", prompt);
 
   const response = await fetch(
-    "https://api-inference.huggingface.co/models/meta-llama/Llama-2-7b-chat-hf",
+    "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1",
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.HUGGING_FACE_ACCESS_TOKEN}`,
+        Authorization: `Bearer ${process.env.EXPO_PUBLIC_HUGGING_FACE_ACCESS_TOKEN}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         inputs: prompt,
         parameters: {
           temperature: 0.7,
+          max_new_tokens: 80,
         },
       }),
     }
   );
 
   if (!response.ok) {
-    throw new Error(`Failed to enhance prompt: ${response.statusText}`);
+    const errorBody = await response.text();
+    throw new Error(`Failed to enhance prompt: ${errorBody}`);
   }
 
   const result = await response.json();

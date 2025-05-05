@@ -548,7 +548,7 @@ export async function improvePrompt(
   passage: string,
   model: string
 ): Promise<string> {
-  const prompt = `Create a prompt for image generation based on the book "${bookTitle}", for the passage: "${passage}"`;
+  const prompt = `Generate ONE single, concise image generation prompt for the following passage, optimized for a text-to-image model like Stable Diffusion based on the book "${bookTitle}", for the passage: "${passage}". Be as specific as possible with details like clothing, include keywords that emphasize the core themes of the passage `;
   console.log("Prompt: ", prompt);
 
   let responseText: string;
@@ -592,7 +592,7 @@ async function useMistralai(prompt: string): Promise<string> {
   }
 
   const result = await response.json();
-  return result[0]?.generated_text?.trim() || prompt;
+  return result[0]?.generated_text || prompt;
 }
 
 async function useGemini(prompt: string): Promise<string> {

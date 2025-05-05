@@ -237,7 +237,8 @@ export default function BookReaderPage() {
 
     try {
       // const newHighlight = await createHighlight(bookId, cfiRange, text, true);
-      const llmModel = "gemini";
+      const llmModel = process.env.EXPO_PUBLIC_MODEL ?? "mistralai";
+      console.log(llmModel);
 
       const improvedPrompt = await improvePrompt(
         bookTitle ?? "Untitled",

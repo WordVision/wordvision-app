@@ -237,8 +237,13 @@ export default function BookReaderPage() {
 
     try {
       // const newHighlight = await createHighlight(bookId, cfiRange, text, true);
+      const llmModel = "gemini";
 
-      const improvedPrompt = await improvePrompt(bookTitle ?? "Untitled", text);
+      const improvedPrompt = await improvePrompt(
+        bookTitle ?? "Untitled",
+        text,
+        llmModel
+      );
 
       const newHighlight = await createHighlight(
         bookId,

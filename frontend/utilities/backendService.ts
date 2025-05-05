@@ -2,6 +2,7 @@ import { Alert, Platform } from "react-native";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import * as Crypto from "expo-crypto";
+import { GoogleGenAI } from "@google/genai";
 
 // const backendURL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
 // const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://10.0.2.2:8000";
@@ -544,11 +545,29 @@ export async function visualizeHighlight(
 
 export async function improvePrompt(
   bookTitle: string,
-  passage: string
+  passage: string,
+  model: string
 ): Promise<string> {
   const prompt = `Create a prompt for image generation based on the book "${bookTitle}", for the passage: "${passage}"`;
   console.log("Prompt: ", prompt);
 
+  let responseText: string;
+
+  if (model === "gemini") {
+    console.log("Using Gemini");
+    responseText = await useGemini(prompt);
+  } else {
+    responseText = await useMistralai(prompt);
+  }
+
+  if (!responseText) {
+    throw new Error("Failed to enhance prompt: Empty response");
+  }
+
+  return responseText;
+}
+
+async function useMistralai(prompt: string): Promise<string> {
   const response = await fetch(
     "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1",
     {
@@ -568,12 +587,26 @@ export async function improvePrompt(
   );
 
   if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Failed to enhance prompt: ${errorBody}`);
+    const error = await response.text();
+    throw new Error(`Mistral API error: ${error}`);
   }
 
   const result = await response.json();
-
-  // LLaMA returns: [{ generated_text: "..." }]
   return result[0]?.generated_text?.trim() || prompt;
+}
+
+async function useGemini(prompt: string): Promise<string> {
+  const apiKey = process.env.EXPO_PUBLIC_GEMINI_TOKEN;
+  const ai = new GoogleGenAI({ apiKey });
+
+  const result = await ai.models.generateContent({
+    model: "gemini-2.0-flash",
+    contents: prompt,
+  });
+
+  const text = result.text;
+  console.log(text);
+  if (!text) throw new Error("Gemini returned no text");
+
+  return text;
 }

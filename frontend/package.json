@@ -21,6 +21,7 @@
     "@expo-google-fonts/atkinson-hyperlegible": "^0.2.3",
     "@expo-google-fonts/quando": "^0.2.3",
     "@expo/vector-icons": "^14.0.2",
+    "@google/genai": "^0.12.0",
     "@gorhom/bottom-sheet": "^5.1.2",
     "@hookform/resolvers": "^4.1.0",
     "@react-native-async-storage/async-storage": "1.23.1",

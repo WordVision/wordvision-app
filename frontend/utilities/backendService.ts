@@ -1,11 +1,13 @@
 import { Alert, Platform } from "react-native";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import * as Crypto from 'expo-crypto';
+import * as Crypto from "expo-crypto";
+import { GoogleGenAI } from "@google/genai";
 
 // const backendURL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
 // const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://10.0.2.2:8000";
-const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://192.168.2.59:8000";
+const backendURL =
+  Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://192.168.2.59:8000";
 // const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://10.0.0.145:8000";
 
 // Book interface
@@ -133,7 +135,10 @@ export async function deleteUserSelectedBook(session: Session, bookId: string) {
 }
 
 // This method will get all the highlights for the user selected book
-export async function getAllHighlightsByBookId(session: Session, bookId: string) {
+export async function getAllHighlightsByBookId(
+  session: Session,
+  bookId: string
+) {
   const response = await fetch(backendURL + `/book/${bookId}/highlights`, {
     method: "GET",
     headers: {
@@ -285,9 +290,7 @@ export async function createUserHighlight(
   if (response.status === 200) {
     // return true;
     return await response.json();
-  }
-  else
-    return null;
+  } else return null;
 }
 
 // This method will create a new highlight for the user
@@ -396,26 +399,23 @@ export async function createCustomImage(
   }
 }
 
-
 export async function createHighlight(
   book_id: string,
   location: string,
   text: string,
   visualize: boolean = false
 ): Promise<Highlight> {
-
   // get user
   const getUserRes = await supabase.auth.getUser();
   if (getUserRes.error) throw getUserRes.error;
 
   // Save highlight to database
-  const saveHighlightRes = await supabase.from("highlights")
-    .insert({
-      user_id: getUserRes.data.user?.id,
-      book_id,
-      text,
-      location
-    });
+  const saveHighlightRes = await supabase.from("highlights").insert({
+    user_id: getUserRes.data.user?.id,
+    book_id,
+    text,
+    location,
+  });
 
   // Handle any database errors
   if (saveHighlightRes.error) {
@@ -423,7 +423,8 @@ export async function createHighlight(
   }
 
   // Get newly created highlight id
-  const selHighIdRes = await supabase.from("highlights")
+  const selHighIdRes = await supabase
+    .from("highlights")
     .select("id")
     .eq("location", location)
     .is("img_url", null)
@@ -432,7 +433,7 @@ export async function createHighlight(
 
   // Handle any database errors
   if (selHighIdRes.error) {
-    throw selHighIdRes.error
+    throw selHighIdRes.error;
   }
 
   const highlightId = selHighIdRes.data.id;
@@ -440,10 +441,10 @@ export async function createHighlight(
   // if user wants to visualize
   if (visualize) {
     return await visualizeHighlight(highlightId, text);
-  }
-  else {
+  } else {
     // Get newly created highlight id
-    const { data, error } = await supabase.from("highlights")
+    const { data, error } = await supabase
+      .from("highlights")
       .select("*")
       .eq("id", highlightId)
       .limit(1)
@@ -458,35 +459,39 @@ export async function createHighlight(
   }
 }
 
-
-export async function visualizeHighlight(highlightId: string, prompt: string): Promise<Highlight> {
-
+export async function visualizeHighlight(
+  highlightId: string,
+  prompt: string
+): Promise<Highlight> {
   const image_id = Crypto.randomUUID();
 
-  const genImageRes = await supabase.functions.invoke<{img_url: string}>('generate-image', {
-    body: {
-      image_id,
-      prompt,
-    },
-  })
+  const genImageRes = await supabase.functions.invoke<{ img_url: string }>(
+    "generate-image",
+    {
+      body: {
+        image_id,
+        prompt,
+      },
+    }
+  );
 
   if (genImageRes.error) {
-    console.error("function visualizeHighlight: genImageRes Error")
+    console.error("function visualizeHighlight: genImageRes Error");
     throw genImageRes.error;
   }
 
   if (genImageRes.data) {
-
     // Get old img url
-    const getHighlightRes = await supabase.from("highlights")
+    const getHighlightRes = await supabase
+      .from("highlights")
       .select("img_url")
       .eq("id", highlightId)
       .limit(1)
       .single();
 
     if (getHighlightRes.error) {
-      console.error("Function visualizeHighlight: getHighlightRes Error")
-      throw getHighlightRes.error
+      console.error("Function visualizeHighlight: getHighlightRes Error");
+      throw getHighlightRes.error;
     }
 
     const oldImgUrl: string = getHighlightRes.data.img_url;
@@ -495,19 +500,19 @@ export async function visualizeHighlight(highlightId: string, prompt: string): P
       const imgPath = oldImgUrl.split("images/")[1];
 
       // Delete old image
-      const deleteImgRes = await supabase.storage.from("images").remove([imgPath]);
+      const deleteImgRes = await supabase.storage
+        .from("images")
+        .remove([imgPath]);
 
       if (deleteImgRes.error) {
-        console.error("Function visualizeHighlight: deleteImgRes Error")
-        throw deleteImgRes.error
+        console.error("Function visualizeHighlight: deleteImgRes Error");
+        throw deleteImgRes.error;
       }
     }
 
-
-
-
     // Update highlight with new image url
-    const updateHighlightRes = await supabase.from("highlights")
+    const updateHighlightRes = await supabase
+      .from("highlights")
       .update({
         img_url: genImageRes.data.img_url,
         img_prompt: prompt,
@@ -516,14 +521,14 @@ export async function visualizeHighlight(highlightId: string, prompt: string): P
 
     // Handle any database errors
     if (updateHighlightRes.error) {
-      console.error("function visualizeHighlight: updateHighlightRes Error")
+      console.error("function visualizeHighlight: updateHighlightRes Error");
       throw updateHighlightRes.error;
     }
-
   }
 
   // Get updated highlight details
-  const { data, error } = await supabase.from("highlights")
+  const { data, error } = await supabase
+    .from("highlights")
     .select("*")
     .eq("id", highlightId)
     .limit(1)
@@ -531,10 +536,77 @@ export async function visualizeHighlight(highlightId: string, prompt: string): P
 
   // Handle any database errors
   if (error) {
-    console.error("function visualizeHighlight: retrieveHighlight Error")
+    console.error("function visualizeHighlight: retrieveHighlight Error");
     throw error;
   }
 
   return data;
 }
 
+export async function improvePrompt(
+  bookTitle: string,
+  passage: string,
+  model: string
+): Promise<string> {
+  const prompt = `Generate ONE single, concise image generation prompt for the following passage, optimized for a text-to-image model like Stable Diffusion based on the book "${bookTitle}", for the passage: "${passage}". Be as specific as possible with details like clothing, include keywords that emphasize the core themes of the passage `;
+  console.log("Prompt: ", prompt);
+
+  let responseText: string;
+
+  if (model === "gemini") {
+    console.log("Using Gemini");
+    responseText = await useGemini(prompt);
+  } else {
+    responseText = await useMistralai(prompt);
+  }
+
+  if (!responseText) {
+    throw new Error("Failed to enhance prompt: Empty response");
+  }
+
+  return responseText;
+}
+
+async function useMistralai(prompt: string): Promise<string> {
+  const response = await fetch(
+    "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.EXPO_PUBLIC_HUGGING_FACE_ACCESS_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        inputs: prompt,
+        parameters: {
+          temperature: 0.7,
+          max_new_tokens: 80,
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Mistral API error: ${error}`);
+  }
+
+  const result = await response.json();
+  return result[0]?.generated_text || prompt;
+}
+
+async function useGemini(prompt: string): Promise<string> {
+  const apiKey = process.env.EXPO_PUBLIC_GEMINI_TOKEN;
+  const ai = new GoogleGenAI({ apiKey });
+
+  const result = await ai.models.generateContent({
+    model: "gemini-2.0-flash",
+    contents: prompt,
+  });
+
+  const text = result.text;
+  console.log(text);
+  if (!text) throw new Error("Gemini returned no text");
+
+  return text;
+}

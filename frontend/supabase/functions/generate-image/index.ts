@@ -36,46 +36,45 @@ Deno.serve(async (req: Request) => {
     }
 
     const user_id = getUserRes.data.user.id;
-    console.log("👤 Authenticated user ID:", user_id);
 
-    // const limit = 2;
-    // const rate = "24h";
+    const limit = 2;
+    const rate = "24h";
 
-    // const redis = new Redis({
-    //   url: Deno.env.get("UPSTASH_REDIS_REST_URL")!,
-    //   token: Deno.env.get("UPSTASH_REDIS_REST_TOKEN")!,
-    // });
+    const redis = new Redis({
+      url: Deno.env.get("UPSTASH_REDIS_REST_URL")!,
+      token: Deno.env.get("UPSTASH_REDIS_REST_TOKEN")!,
+    });
 
-    // const ratelimit = new Ratelimit({
-    //   redis,
-    //   limiter: Ratelimit.slidingWindow(limit, rate),
-    //   analytics: true,
-    //   prefix: "@upstash/ratelimit",
-    // });
+    const ratelimit = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(limit, rate),
+      analytics: true,
+      prefix: "@upstash/ratelimit",
+    });
 
-    // console.log("📊 Checking rate limit for:", user_id);
-    // const { success } = await ratelimit.limit(user_id);
+    console.log("📊 Checking rate limit for:", user_id);
+    const { success } = await ratelimit.limit(user_id);
 
-    // if (!success) {
-    //   const { reset } = await ratelimit.getRemaining(user_id);
-    //   console.warn("🚫 Rate limit exceeded. Reset at:", reset);
+    if (!success) {
+      const { reset } = await ratelimit.getRemaining(user_id);
+      console.warn("🚫 Rate limit exceeded. Reset at:", reset);
 
-    //   return new Response(
-    //     JSON.stringify({
-    //       status: 429,
-    //       message: `Image generation limit exceeded. You only have ${limit} requests per day`,
-    //       reset,
-    //     }),
-    //     {
-    //       status: 429,
-    //       headers: {
-    //         "Content-Type": "application/json",
-    //       },
-    //     }
-    //   );
-    // }
+      return new Response(
+        JSON.stringify({
+          status: 429,
+          message: `Image generation limit exceeded. You only have ${limit} requests per day`,
+          reset,
+        }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
 
-    // console.log("✅ Rate limit passed. Generating image...");
+    console.log("✅ Rate limit passed. Generating image...");
 
     const improvedPrompt = await improvePrompt(book_title, passage);
 
@@ -135,7 +134,6 @@ Deno.serve(async (req: Request) => {
 async function generateImage(prompt: string): Promise<Blob> {
   console.log("🤖 Calling Hugging Face with prompt:", prompt);
   const hf = new HfInference(Deno.env.get("HUGGING_FACE_ACCESS_TOKEN"));
-  console.log("🔐 Loaded HF token:", Deno.env.get("HUGGING_FACE_ACCESS_TOKEN"));
 
   const image = await hf.textToImage(
     {
@@ -162,8 +160,6 @@ export async function improvePrompt(
   const ai = new GoogleGenAI({
     apiKey: apiKey,
   });
-
-  console.log("✨ Using Gemini with provided API key");
 
   const response = await ai.models.generateContent({
     model: "gemini-2.0-flash",

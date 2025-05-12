@@ -3,13 +3,19 @@ import { createClient } from "@supabase/supabase-js";
 import { Redis } from "@upstash/redis";
 import { Ratelimit } from "@upstash/ratelimit";
 import { SupabaseClient } from "../_shared/supabaseClient.ts";
+import { GoogleGenAI } from "@google/genai";
 
 Deno.serve(async (req: Request) => {
   try {
     console.log("📩 Received request");
 
-    const { image_id, prompt } = await req.json();
-    console.log("📝 Request body parsed:", { image_id, prompt });
+    const { image_id, passage, book_title } = await req.json();
+
+    console.log("📝 Request body parsed:", {
+      image_id,
+      passage,
+      book_title,
+    });
 
     const supabase = SupabaseClient(req);
     console.log("🔑 Supabase client initialized");
@@ -71,7 +77,12 @@ Deno.serve(async (req: Request) => {
 
     // console.log("✅ Rate limit passed. Generating image...");
 
-    const image = await generateImage(prompt);
+    const improvedPrompt = await improvePrompt(book_title, passage);
+
+    console.log("✨ Improved prompt:", improvedPrompt);
+
+    const image = await generateImage(improvedPrompt);
+
     console.log("🖼️ Image generated");
 
     const uploadToStorageRes = await supabase.storage
@@ -137,4 +148,34 @@ async function generateImage(prompt: string): Promise<Blob> {
   );
   console.log("🎨 Hugging Face returned image blob");
   return image;
+}
+
+export async function improvePrompt(
+  bookTitle: string,
+  passage: string
+): Promise<string> {
+  const prompt = `Generate ONE single, concise image generation prompt for the following passage, optimized for a text-to-image model like Stable Diffusion based on the book "${bookTitle}", for the passage: "${passage}". Be as specific as possible with details like clothing, include keywords that emphasize the core themes of the passage.`;
+  console.log("Prompt: ", prompt);
+
+  const apiKey = Deno.env.get("EXPO_PUBLIC_GEMINI_TOKEN");
+
+  const ai = new GoogleGenAI({
+    apiKey: apiKey,
+  });
+
+  console.log("✨ Using Gemini with provided API key");
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.0-flash",
+    contents: prompt,
+  });
+
+  const text = response.text;
+  console.log("🔮 Gemini response:", text);
+
+  if (!text) {
+    throw new Error("Gemini returned no text");
+  }
+
+  return text.trim();
 }

@@ -24,7 +24,6 @@ import {
   deleteHighlight,
   visualizeHighlight,
   createHighlight,
-  improvePrompt,
 } from "@/utilities/backendService";
 
 export type VisualAnnotation = Annotation<{
@@ -80,7 +79,6 @@ export default function BookReaderPage() {
   const [selectedHighlight, setSelectedHighlight] = useState<Highlight | null>(
     null
   );
-  const [bookTitle, setBookTitle] = useState<string | null>(null);
 
   // Navigation options as a stack child
   useEffect(() => {
@@ -153,7 +151,6 @@ export default function BookReaderPage() {
       console.log({ databaseData: database.data });
 
       if (database.data) {
-        setBookTitle(database.data.filename);
         const file = new File(
           Paths.cache,
           database.data.id,
@@ -236,22 +233,7 @@ export default function BookReaderPage() {
     setShowLoadingModal(true);
 
     try {
-      // const newHighlight = await createHighlight(bookId, cfiRange, text, true);
-      const llmModel = process.env.EXPO_PUBLIC_MODEL ?? "mistralai";
-      console.log(llmModel);
-
-      const improvedPrompt = await improvePrompt(
-        bookTitle ?? "Untitled",
-        text,
-        llmModel
-      );
-
-      const newHighlight = await createHighlight(
-        bookId,
-        cfiRange,
-        improvedPrompt,
-        true
-      );
+      const newHighlight = await createHighlight(bookId, cfiRange, text, true);
 
       addAnnotation("highlight", cfiRange, {
         id: newHighlight.id,

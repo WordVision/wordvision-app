@@ -524,7 +524,7 @@ export async function visualizeHighlight(
       .from("highlights")
       .update({
         img_url: genImageRes.data.img_url,
-        img_prompt: prompt,
+        img_prompt: passage,
       })
       .eq("id", highlightId);
 

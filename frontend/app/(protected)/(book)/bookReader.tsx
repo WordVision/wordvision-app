@@ -79,6 +79,7 @@ export default function BookReaderPage() {
   const [selectedHighlight, setSelectedHighlight] = useState<Highlight | null>(
     null
   );
+  const [bookTitle, setBookTitle] = useState<string | null>(null);
 
   // Navigation options as a stack child
   useEffect(() => {
@@ -268,7 +269,8 @@ export default function BookReaderPage() {
     try {
       const highlight = await visualizeHighlight(
         annotation.data.id,
-        annotation.cfiRangeText
+        annotation.cfiRangeText,
+        bookTitle ?? "Untitled"
       );
 
       updateAnnotation(annotation, {

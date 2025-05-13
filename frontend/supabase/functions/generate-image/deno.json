@@ -3,7 +3,8 @@
     "@huggingface/inference": "npm:@huggingface/inference",
     "@supabase/supabase-js": "npm:@supabase/supabase-js",
     "@upstash/redis": "npm:@upstash/redis",
-    "@upstash/ratelimit": "https://cdn.skypack.dev/@upstash/ratelimit@latest"
+    "@upstash/ratelimit": "https://cdn.skypack.dev/@upstash/ratelimit@latest",
+    "@google/genai": "npm:@google/genai"
   },
   "compilerOptions": {
     "allowImportingTsExtensions": true

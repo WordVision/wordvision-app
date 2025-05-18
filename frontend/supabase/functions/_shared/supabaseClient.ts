@@ -6,9 +6,9 @@ export function SupabaseClient(req: Request) {
 
   const supabaseUrl = isLocal
     ? Deno.env.get("EXPO_PUBLIC_LOCAL_URL")!
-    : Deno.env.get("EXPO_PUBLIC_SUPABASE_URL")!;
+    : Deno.env.get("SUPABASE_URL")!;
 
-  const supabaseAnonKey = Deno.env.get("EXPO_PUBLIC_SUPABASE_ANON_KEY")!;
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
   return createClient(supabaseUrl, supabaseAnonKey, {
     global: {

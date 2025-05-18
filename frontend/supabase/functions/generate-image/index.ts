@@ -1,9 +1,8 @@
 import { HfInference } from "@huggingface/inference";
-import { createClient } from "@supabase/supabase-js";
 import { Redis } from "@upstash/redis";
 import { Ratelimit } from "@upstash/ratelimit";
-import { SupabaseClient } from "../_shared/supabaseClient.ts";
 import { GoogleGenAI } from "@google/genai";
+import { SupabaseClient } from "../_shared/supabaseClient.ts";
 import { corsHeaders } from '../_shared/cors.ts'
 
 Deno.serve(async (req: Request) => {

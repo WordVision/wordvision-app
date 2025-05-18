@@ -4,8 +4,15 @@ import { Redis } from "@upstash/redis";
 import { Ratelimit } from "@upstash/ratelimit";
 import { SupabaseClient } from "../_shared/supabaseClient.ts";
 import { GoogleGenAI } from "@google/genai";
+import { corsHeaders } from '../_shared/cors.ts'
 
 Deno.serve(async (req: Request) => {
+
+  // This is needed for invoking from a browser.
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   try {
     console.log("📩 Received request");
 
@@ -30,7 +37,10 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ error: getUserRes.error.message ?? "Unauthorized" }),
         {
           status,
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json"
+          },
         }
       );
     }
@@ -68,6 +78,7 @@ Deno.serve(async (req: Request) => {
         {
           status: 429,
           headers: {
+            ...corsHeaders,
             "Content-Type": "application/json",
           },
         }
@@ -96,7 +107,7 @@ Deno.serve(async (req: Request) => {
       console.error("📦 Upload to storage failed:", uploadToStorageRes.error);
       return new Response(JSON.stringify(uploadToStorageRes.error), {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -109,10 +120,17 @@ Deno.serve(async (req: Request) => {
 
     console.log("🌐 Public image URL generated:", publicUrl);
 
-    return Response.json({
+    return new Response(JSON.stringify({
       img_url: publicUrl,
+    }), {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json"
+      },
     });
-  } catch (err: unknown) {
+  }
+  catch (err: unknown) {
     const errorMessage =
       err instanceof Error ? err.message : "Unhandled error occurred";
     console.error("💥 Top-level error:", err);
@@ -124,6 +142,7 @@ Deno.serve(async (req: Request) => {
         error: errorMessage,
       }),
       {
+        ...corsHeaders,
         status: 500,
         headers: { "Content-Type": "application/json" },
       }

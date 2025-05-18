@@ -46,7 +46,7 @@ Deno.serve(async (req: Request) => {
 
     const user_id = getUserRes.data.user.id;
 
-    const limit = 2;
+    const limit = 10;
     const rate = "24h";
 
     const redis = new Redis({

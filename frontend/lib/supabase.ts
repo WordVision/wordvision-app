@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const LOCAL_ENV = process.env.EXPO_PUBLIC_LOCAL_ENV;
 
-const supabaseUrl = !LOCAL_ENV
+const supabaseUrl = LOCAL_ENV === "false"
   ? process.env.EXPO_PUBLIC_SUPABASE_URL
   : process.env.EXPO_PUBLIC_LOCAL_URL;
 if (!supabaseUrl) throw "missing .env variable: EXPO_PUBLIC_SUPABASE_URL";

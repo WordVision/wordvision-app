@@ -17,10 +17,12 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { supabase } from "@/lib/supabase";
+
 import Loading from "@/components/Loading";
 
 import { TableOfContents } from "./components/TableOfContents";
 import { HighlightsList } from "./components/HighlightsList";
+import MenuButton from "./components/MenuButton";
 import NavHeader from "./components/NavHeader";
 
 import {
@@ -502,6 +504,8 @@ export default function BookReaderPage() {
         ) : (
           <Text>Book URL is not available.</Text>
         )}
+
+        <MenuButton show={showMenu} />
 
         <TableOfContents
           ref={tableOfContentsRef}

@@ -21,6 +21,8 @@ import Loading from "@/components/Loading";
 
 import { TableOfContents } from "./components/TableOfContents";
 import { HighlightsList } from "./components/HighlightsList";
+import NavHeader from "./components/NavHeader";
+
 import {
   type Highlight,
   deleteHighlight,
@@ -83,11 +85,13 @@ export default function BookReaderPage() {
   );
   const [bookTitle, setBookTitle] = useState<string | null>(null);
 
+  const [showMenu, setShowMenu] = useState<boolean>(false);
+
   // Navigation options as a stack child
   useEffect(() => {
     navigation.setOptions({
       title: "Reader",
-      headerShown: true,
+      headerShown: false,
       headerRight: () => (
         <View
           style={{
@@ -137,7 +141,7 @@ export default function BookReaderPage() {
         .from("books")
         .select(
           `
-          id, filename,
+          id, filename, title,
           highlights(
             id,
             text,
@@ -154,6 +158,9 @@ export default function BookReaderPage() {
       console.log({ databaseData: database.data });
 
       if (database.data) {
+
+        setBookTitle(database.data.title);
+
         const file = new File(
           Paths.cache,
           database.data.id,
@@ -437,11 +444,18 @@ export default function BookReaderPage() {
     );
   }
 
+
   return (
     <GestureHandlerRootView>
 
       <StatusBar
         translucent={false}
+      />
+
+      <NavHeader
+        title={bookTitle!}
+        show={showMenu}
+        onHide={() => setShowMenu(false)}
       />
 
       <View style={{ flex: 1 }}>
@@ -452,6 +466,9 @@ export default function BookReaderPage() {
             waitForLocationsReady
             manager="continuous"
             flow="scrolled"
+            onSingleTap={() => {
+                setShowMenu(!showMenu);
+            }}
             onPressAnnotation={(annotation: VisualAnnotation) => {
               setSelectedAnnotation(annotation);
 
@@ -467,6 +484,9 @@ export default function BookReaderPage() {
               } else {
                 setShowEmptyModal(true);
               }
+            }}
+            onSelected={() => {
+              setShowMenu(false);
             }}
             initialAnnotations={annotations}
             menuItems={[

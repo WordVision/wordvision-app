@@ -17,8 +17,9 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { supabase } from "@/lib/supabase";
 import Loading from "@/components/Loading";
-import { TableOfContents } from "@/components/TableOfContents";
-import { HighlightsList } from "@/components/HighlightsList";
+
+import { TableOfContents } from "./components/TableOfContents";
+import { HighlightsList } from "./components/HighlightsList";
 import {
   type Highlight,
   deleteHighlight,

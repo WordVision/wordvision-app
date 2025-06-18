@@ -52,7 +52,7 @@ export default function BookReaderPage() {
 
   const { goToLocation, addAnnotation, updateAnnotation } = useReader();
 
-  const { bookId } = useLocalSearchParams<{ bookId: string }>();
+  const { bookId } = useLocalSearchParams();
 
   const navigation = useNavigation();
   const router = useRouter();

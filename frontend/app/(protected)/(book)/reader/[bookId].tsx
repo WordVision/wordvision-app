@@ -443,6 +443,8 @@ export default function BookReaderPage() {
             src={bookUrl}
             fileSystem={useFileSystem}
             waitForLocationsReady
+            manager="continuous"
+            flow="scrolled"
             onPressAnnotation={(annotation: VisualAnnotation) => {
               setSelectedAnnotation(annotation);
 

@@ -12,6 +12,7 @@ import { useReader, Reader, Annotation } from "@epubjs-react-native/core";
 import { useFileSystem } from "@epubjs-react-native/expo-file-system";
 import { File, Paths, Directory } from "expo-file-system/next";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -438,6 +439,11 @@ export default function BookReaderPage() {
 
   return (
     <GestureHandlerRootView>
+
+      <StatusBar
+        translucent={false}
+      />
+
       <View style={{ flex: 1 }}>
         {bookUrl ? (
           <Reader

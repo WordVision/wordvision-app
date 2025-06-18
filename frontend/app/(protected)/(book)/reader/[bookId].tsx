@@ -24,6 +24,7 @@ import { TableOfContents } from "./components/TableOfContents";
 import { HighlightsList } from "./components/HighlightsList";
 import MenuButton from "./components/MenuButton";
 import NavHeader from "./components/NavHeader";
+import ActionBar from "./components/ActionBar";
 
 import {
   type Highlight,
@@ -88,6 +89,8 @@ export default function BookReaderPage() {
   const [bookTitle, setBookTitle] = useState<string | null>(null);
 
   const [showMenu, setShowMenu] = useState<boolean>(false);
+  const [showActionBar, setShowActionBar] = useState<boolean>(false);
+
 
   // Navigation options as a stack child
   useEffect(() => {
@@ -469,7 +472,10 @@ export default function BookReaderPage() {
             manager="continuous"
             flow="scrolled"
             onSingleTap={() => {
+              if (!showActionBar) {
                 setShowMenu(!showMenu);
+              }
+              setShowActionBar(false);
             }}
             onPressAnnotation={(annotation: VisualAnnotation) => {
               setSelectedAnnotation(annotation);
@@ -489,23 +495,26 @@ export default function BookReaderPage() {
             }}
             onSelected={() => {
               setShowMenu(false);
+              setShowActionBar(true);
             }}
             initialAnnotations={annotations}
-            menuItems={[
-              {
-                label: "Visualize",
-                action: (cfiRange, text) => {
-                  handleVisualizeNewHighlight(cfiRange, text);
-                  return true;
-                },
-              },
-            ]}
+            menuItems={[]}
+            // menuItems={[
+            //   {
+            //     label: "Visualize",
+            //     action: (cfiRange, text) => {
+            //       handleVisualizeNewHighlight(cfiRange, text);
+            //       return true;
+            //     },
+            //   },
+            // ]}
           />
         ) : (
           <Text>Book URL is not available.</Text>
         )}
 
         <MenuButton show={showMenu} />
+        <ActionBar show={showActionBar}/>
 
         <TableOfContents
           ref={tableOfContentsRef}

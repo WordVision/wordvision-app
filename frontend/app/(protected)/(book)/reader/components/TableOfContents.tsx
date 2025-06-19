@@ -76,31 +76,28 @@ export const TableOfContents = forwardRef<Ref, Props>(({ onPressSection, onClose
     );
 
     return (
-
-      <BottomSheetModalProvider>
-        <BottomSheetModal
-          ref={ref}
-          index={0}
-          snapPoints={snapPoints}
-          enablePanDownToClose
-          style={{
-            ...styles.container,
-            backgroundColor: theme.body.background,
-          }}
-          handleStyle={{ backgroundColor: theme.body.background }}
-          backgroundStyle={{ backgroundColor: theme.body.background }}
-        >
-          <BottomSheetFlatList
-            data={toc}
-            showsVerticalScrollIndicator={false}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            ListHeaderComponent={header}
-            style={{ width: '100%' }}
-            maxToRenderPerBatch={20}
-          />
-        </BottomSheetModal>
-      </BottomSheetModalProvider>
+      <BottomSheetModal
+        ref={ref}
+        index={0}
+        snapPoints={snapPoints}
+        enablePanDownToClose
+        style={{
+          ...styles.container,
+          backgroundColor: theme.body.background,
+        }}
+        handleStyle={{ backgroundColor: theme.body.background }}
+        backgroundStyle={{ backgroundColor: theme.body.background }}
+      >
+        <BottomSheetFlatList
+          data={toc}
+          showsVerticalScrollIndicator={false}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          ListHeaderComponent={header}
+          style={{ width: '100%' }}
+          maxToRenderPerBatch={20}
+        />
+      </BottomSheetModal>
     );
   }
 );

@@ -75,34 +75,31 @@ export const HighlightsList = forwardRef<Ref, Props>(({ onPressItem, onClose }, 
     );
 
     return (
-
-      <BottomSheetModalProvider>
-        <BottomSheetModal
-          ref={ref}
-          index={0}
-          snapPoints={snapPoints}
-          enablePanDownToClose
-          style={{
-            ...styles.container,
-            backgroundColor: theme.body.background,
-          }}
-          handleStyle={{ backgroundColor: theme.body.background }}
-          backgroundStyle={{ backgroundColor: theme.body.background }}
-        >
-          <BottomSheetFlatList
-            data={annotations.filter(
-              (annotation) =>
-                !annotation?.data?.isTemp && annotation.type !== 'mark'
-            )}
-            showsVerticalScrollIndicator={false}
-            keyExtractor={(item) => item.cfiRange}
-            renderItem={renderItem}
-            ListHeaderComponent={header}
-            style={{ width: '100%' }}
-            maxToRenderPerBatch={20}
-          />
-        </BottomSheetModal>
-      </BottomSheetModalProvider>
+      <BottomSheetModal
+        ref={ref}
+        index={0}
+        snapPoints={snapPoints}
+        enablePanDownToClose
+        style={{
+          ...styles.container,
+          backgroundColor: theme.body.background,
+        }}
+        handleStyle={{ backgroundColor: theme.body.background }}
+        backgroundStyle={{ backgroundColor: theme.body.background }}
+      >
+        <BottomSheetFlatList
+          data={annotations.filter(
+            (annotation) =>
+              !annotation?.data?.isTemp && annotation.type !== 'mark'
+          )}
+          showsVerticalScrollIndicator={false}
+          keyExtractor={(item) => item.cfiRange}
+          renderItem={renderItem}
+          ListHeaderComponent={header}
+          style={{ width: '100%' }}
+          maxToRenderPerBatch={20}
+        />
+      </BottomSheetModal>
     );
   }
 );

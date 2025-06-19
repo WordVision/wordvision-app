@@ -15,7 +15,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { supabase } from "@/lib/supabase";
 
 import Loading from "@/components/Loading";
@@ -451,8 +450,7 @@ export default function BookReaderPage() {
 
 
   return (
-    <GestureHandlerRootView>
-
+    <>
       <StatusBar
         translucent={false}
       />
@@ -588,7 +586,7 @@ export default function BookReaderPage() {
           </View>
         </Modal>
       </View>
-    </GestureHandlerRootView>
+    </>
   );
 }
 

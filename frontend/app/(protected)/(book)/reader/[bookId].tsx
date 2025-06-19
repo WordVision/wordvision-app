@@ -14,13 +14,14 @@ import { File, Paths, Directory } from "expo-file-system/next";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { FontAwesome5 } from "@expo/vector-icons";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { supabase } from "@/lib/supabase";
 
 import Loading from "@/components/Loading";
 
 import { TableOfContents } from "./components/TableOfContents";
 import { HighlightsList } from "./components/HighlightsList";
+import { ImageVisualizer } from "./components/ImageVisualizer";
 import MenuButton from "./components/MenuButton";
 import NavHeader from "./components/NavHeader";
 import ActionBar from "./components/ActionBar";
@@ -56,7 +57,12 @@ export default function BookReaderPage() {
     - return boolean based on success
   */
 
-  const { goToLocation, addAnnotation, updateAnnotation } = useReader();
+  const {
+    goToLocation,
+    addAnnotation,
+    updateAnnotation,
+    removeSelection
+  } = useReader();
 
   const { bookId } = useLocalSearchParams();
 
@@ -65,6 +71,7 @@ export default function BookReaderPage() {
 
   const tableOfContentsRef = useRef<BottomSheetModal>(null);
   const highlightsListRef = useRef<BottomSheetModal>(null);
+  const imageVisualizerRef = useRef<BottomSheet>(null);
 
   const colorScheme = useColorScheme();
 
@@ -512,7 +519,14 @@ export default function BookReaderPage() {
         )}
 
         <MenuButton show={showMenu} />
-        <ActionBar show={showActionBar}/>
+        <ActionBar
+          show={showActionBar}
+          onVisualize={() => {
+            setShowActionBar(false);
+            removeSelection();
+            imageVisualizerRef.current?.expand()
+          }}
+        />
 
         <TableOfContents
           ref={tableOfContentsRef}
@@ -530,6 +544,13 @@ export default function BookReaderPage() {
             highlightsListRef.current?.dismiss();
           }}
           onClose={() => highlightsListRef.current?.dismiss()}
+        />
+
+        <ImageVisualizer
+          ref={imageVisualizerRef}
+          onClose={() => {
+            imageVisualizerRef.current?.close()
+          }}
         />
 
         {/* Empty highlight modal */}

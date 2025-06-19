@@ -3,8 +3,8 @@ import { Text, Animated, Pressable, Platform } from "react-native";
 
 interface ActionBarProps {
   show: boolean;
+  onVisualize: () => void;
 }
-
 
 export default function ActionBar(p: ActionBarProps) {
 
@@ -47,6 +47,7 @@ export default function ActionBar(p: ActionBarProps) {
           paddingVertical: 10,
           alignItems: "center",
         }}
+        onPress={p.onVisualize}
       >
         <Text
           style={{

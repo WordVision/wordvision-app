@@ -6,6 +6,11 @@ import { improvePrompt } from "./lib/promptEngineer.ts";
 import { uploadImage } from "./lib/uploader.ts";
 
 Deno.serve(async (req: Request) => {
+  // This is needed for invoking from a browser.
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   try {
     console.log("📩 Received request");
 

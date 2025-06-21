@@ -6,12 +6,16 @@ import BottomSheet, {
 } from '@gorhom/bottom-sheet';
 import { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 import { Visualization } from '../types';
+import { Path, Svg } from 'react-native-svg';
+import Loading from '@/components/Loading';
 
 interface Props {
   onClose: () => void;
+  onDelete: (v: Visualization) => void;
   onVisualizeEmptyHighlight: () => void;
   visualization?: Visualization;
   error?: string;
+  deleting: boolean;
 }
 export type Ref = BottomSheetMethods;
 
@@ -44,7 +48,7 @@ export const ImageVisualizer = forwardRef<Ref, Props>((p, ref) => {
     >
       <BottomSheetView style={{
         padding: 20,
-        gap: 20,
+        gap: 12,
         alignItems: 'center'
       }}>
 
@@ -74,6 +78,24 @@ export const ImageVisualizer = forwardRef<Ref, Props>((p, ref) => {
           >
             {p.error}
           </Text>
+        </View>
+
+      : p.deleting ?
+
+        <View
+          style={{
+            width: 320,
+            height: 320,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: "black",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+            backgroundColor: "#f3f4f6"
+          }}
+        >
+          <Loading message='Deleting Visualization...'/>
         </View>
 
       : p.visualization ? p.visualization.img_url ?
@@ -147,6 +169,30 @@ export const ImageVisualizer = forwardRef<Ref, Props>((p, ref) => {
           </Text>
         </Pressable>
 
+      : p.deleting ?
+
+        <View
+          style={{
+            borderRadius: 100,
+            backgroundColor: "#b91c1c",
+            paddingVertical: 10,
+            width: "100%",
+            alignItems: "center",
+          }}
+        >
+          <Text
+            style={{
+              color: "white",
+              fontFamily: Platform.select({
+                android: 'Inter_600SemiBold',
+                ios: 'Inter-SemiBold',
+              }),
+            }}
+          >
+            Deleting...
+          </Text>
+        </View>
+
       : p.visualization ? p.visualization.img_url ?
 
         <View
@@ -167,6 +213,7 @@ export const ImageVisualizer = forwardRef<Ref, Props>((p, ref) => {
               paddingVertical: 8,
               gap: 4,
             })}
+            onPress={() => p.onDelete(p.visualization!)}
           >
             <TrashIcon/>
             <Text

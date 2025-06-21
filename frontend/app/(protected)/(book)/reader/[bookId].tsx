@@ -29,6 +29,7 @@ import {
   deleteHighlight,
   visualizeHighlight,
   createHighlight,
+  deleteVisualization,
 } from "@/utilities/backendService";
 import { BookSelection, Visualization } from "./types";
 
@@ -60,7 +61,8 @@ export default function BookReaderPage() {
     goToLocation,
     addAnnotation,
     updateAnnotation,
-    removeSelection
+    removeSelection,
+    removeAnnotationByCfi,
   } = useReader();
 
   const { bookId } = useLocalSearchParams<{bookId: string}>();
@@ -74,8 +76,11 @@ export default function BookReaderPage() {
 
   const colorScheme = useColorScheme();
 
+
   const [visualization, setVisualization] = useState<Visualization | undefined>();
   const [selection, setSelection] = useState<BookSelection | undefined>();
+  const [deleting, setDeleting] = useState<boolean>(false);
+
 
   const [annotations, setAnnotations] = useState<VisualAnnotation[]>([]);
   const [selectedAnnotation, setSelectedAnnotation] =
@@ -563,14 +568,30 @@ export default function BookReaderPage() {
           ref={imageVisualizerRef}
           visualization={visualization}
           error={visualizeError}
+          deleting={deleting}
           onClose={() => {
             setVisualization(undefined);
             setVisualizeError(undefined);
             setImageModalVisible(false);
             imageVisualizerRef.current?.close();
           }}
+          onDelete={async (v: Visualization) => {
+            setDeleting(true);
 
+            const { error } = await deleteVisualization(v);
+            if (!error) {
+              removeAnnotationByCfi(v.location);
+              setVisualization(undefined);
+              setVisualizeError(undefined);
+              setImageModalVisible(false);
+              imageVisualizerRef.current?.close();
+            }
+            else {
+              setVisualizeError(error.message);
+            }
 
+            setDeleting(false);
+          }}
           onVisualizeEmptyHighlight={async () => {
             if (visualization) {
               setVisualization(undefined);

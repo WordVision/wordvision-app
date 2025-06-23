@@ -14,8 +14,13 @@ Deno.serve(async (req: Request) => {
   try {
     console.log("📩 Received request");
 
-    const { image_id, passage, book_title } = await req.json();
-    console.log("📝 Request body parsed:", { image_id, passage, book_title });
+    const { image_id, passage, book_title, book_author } = await req.json();
+    console.log("📝 Request body parsed:", {
+      image_id,
+      passage,
+      book_title,
+      book_author,
+    });
 
     const supabase = SupabaseClient(req);
     console.log("🔑 Supabase client initialized");
@@ -23,7 +28,11 @@ Deno.serve(async (req: Request) => {
     const user_id = await getUserFromRequest(supabase);
     console.log("👤 Authenticated user ID:", user_id);
 
-    const improvedPrompt = await improvePrompt(book_title, passage);
+    const improvedPrompt = await improvePrompt(
+      book_title,
+      book_author,
+      passage
+    );
     console.log("✨ Improved prompt:", improvedPrompt);
 
     const image = await generateImage(improvedPrompt);

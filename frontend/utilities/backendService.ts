@@ -439,15 +439,21 @@ export async function createHighlight(
 
   // if user wants to visualize
   if (visualize) {
-    const bookMeta = await supabase
+    const { data: bookMeta, error: bookMetaError } = await supabase
       .from("books")
-      .select("filename")
+      .select("filename, author") // Correctly select both filename and author
       .eq("id", book_id)
       .single();
 
-    const bookTitle = bookMeta.data?.filename ?? "Untitled";
+    if (bookMetaError) {
+      throw bookMetaError;
+    }
 
-    return await visualizeHighlight(highlightId, text, bookTitle);
+    const bookTitle = bookMeta?.filename ?? "Untitled";
+    const bookAuthor = bookMeta?.author ?? "Unknown Author"; // Retrieve the author
+
+    // Pass the bookAuthor to the visualizeHighlight function
+    return await visualizeHighlight(highlightId, text, bookTitle, bookAuthor);
   } else {
     // Get newly created highlight id
     const { data, error } = await supabase
@@ -469,7 +475,8 @@ export async function createHighlight(
 export async function visualizeHighlight(
   highlightId: string,
   passage: string,
-  bookTitle: string
+  bookTitle: string,
+  bookAuthor: string
 ): Promise<Highlight> {
   const image_id = Crypto.randomUUID();
 
@@ -480,6 +487,7 @@ export async function visualizeHighlight(
         image_id,
         passage,
         book_title: bookTitle,
+        book_author: bookAuthor,
       },
     }
   );

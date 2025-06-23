@@ -80,6 +80,7 @@ export default function BookReaderPage() {
     null
   );
   const [bookTitle, setBookTitle] = useState<string | null>(null);
+  const [bookAuthor, setBookAuthor] = useState<string | null>(null);
 
   // Navigation options as a stack child
   useEffect(() => {
@@ -135,7 +136,7 @@ export default function BookReaderPage() {
         .from("books")
         .select(
           `
-          id, filename,
+          id, filename, author,
           highlights(
             id,
             text,
@@ -157,6 +158,8 @@ export default function BookReaderPage() {
           database.data.id,
           database.data.filename
         );
+
+        setBookAuthor(database.data.author ?? "Unknown Author");
         if (file.exists) {
           console.log("Found downloaded book.");
           console.log({ file: file.uri });
@@ -270,7 +273,8 @@ export default function BookReaderPage() {
       const highlight = await visualizeHighlight(
         annotation.data.id,
         annotation.cfiRangeText,
-        bookTitle ?? "Untitled"
+        bookTitle ?? "Untitled",
+        bookAuthor ?? "Unknown Author"
       );
 
       updateAnnotation(annotation, {

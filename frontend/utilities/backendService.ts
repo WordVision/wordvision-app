@@ -26,6 +26,7 @@ export interface Highlight {
   book_id: string;
   text: string;
   location: string;
+  chapter?: string;
   img_url?: string;
   img_prompt?: string;
 }
@@ -402,6 +403,7 @@ export async function createHighlight(
   book_id: string,
   location: string,
   text: string,
+  chapter: string | null,
   visualize: boolean = false
 ): Promise<Highlight> {
   // get user
@@ -414,6 +416,7 @@ export async function createHighlight(
     book_id,
     text,
     location,
+    chapter,
   });
 
   // Handle any database errors
@@ -453,7 +456,13 @@ export async function createHighlight(
     const bookAuthor = bookMeta?.author ?? "Unknown Author"; // Retrieve the author
 
     // Pass the bookAuthor to the visualizeHighlight function
-    return await visualizeHighlight(highlightId, text, bookTitle, bookAuthor);
+    return await visualizeHighlight(
+      highlightId,
+      text,
+      bookTitle,
+      bookAuthor,
+      chapter
+    );
   } else {
     // Get newly created highlight id
     const { data, error } = await supabase
@@ -476,7 +485,8 @@ export async function visualizeHighlight(
   highlightId: string,
   passage: string,
   bookTitle: string,
-  bookAuthor: string
+  bookAuthor: string,
+  chapter: string | null
 ): Promise<Highlight> {
   const image_id = Crypto.randomUUID();
 
@@ -488,6 +498,7 @@ export async function visualizeHighlight(
         passage,
         book_title: bookTitle,
         book_author: bookAuthor,
+        chapter,
       },
     }
   );

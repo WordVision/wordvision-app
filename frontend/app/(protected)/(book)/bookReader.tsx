@@ -26,10 +26,18 @@ import {
   createHighlight,
 } from "@/utilities/backendService";
 
+interface NavItem {
+  id: string;
+  href: string;
+  label: string;
+  subitems?: NavItem[];
+}
+
 export type VisualAnnotation = Annotation<{
   id: string;
   img_url: string;
   img_prompt: string;
+  chapter?: string | null;
 }>;
 
 export default function BookReaderPage() {
@@ -50,7 +58,13 @@ export default function BookReaderPage() {
     - return boolean based on success
   */
 
-  const { goToLocation, addAnnotation, updateAnnotation } = useReader();
+  const {
+    goToLocation,
+    addAnnotation,
+    updateAnnotation,
+    currentLocation,
+    toc,
+  } = useReader();
 
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
 
@@ -81,6 +95,21 @@ export default function BookReaderPage() {
   );
   const [bookTitle, setBookTitle] = useState<string | null>(null);
   const [bookAuthor, setBookAuthor] = useState<string | null>(null);
+
+  const [currentChapter, setCurrentChapter] = useState<string | null>(null);
+
+  const flattenToc = (tocItems: NavItem[]): NavItem[] => {
+    let flat: NavItem[] = [];
+    for (const item of tocItems) {
+      // Add the top-level item
+      flat.push(item);
+      // If it has subitems, recursively flatten and add them
+      if (item.subitems && item.subitems.length > 0) {
+        flat = flat.concat(flattenToc(item.subitems));
+      }
+    }
+    return flat;
+  };
 
   // Navigation options as a stack child
   useEffect(() => {
@@ -142,7 +171,8 @@ export default function BookReaderPage() {
             text,
             location,
             img_url,
-            img_prompt
+            img_prompt,
+            chapter
           )
         `
         )
@@ -203,6 +233,7 @@ export default function BookReaderPage() {
                   id: annotation.id,
                   img_url: annotation.img_url,
                   img_prompt: annotation.img_prompt,
+                  chapter: annotation.chapter,
                 },
                 sectionIndex: 0, // not sure why but Annotation type needs this
                 cfiRangeText: annotation.text,
@@ -229,6 +260,24 @@ export default function BookReaderPage() {
     // setLoading(false);
   }, [bookId]);
 
+  // In BookReaderPage.tsx, replace the existing chapter-finding useEffect
+
+  useEffect(() => {
+    if (currentLocation && toc.length > 0) {
+      const flatToc = flattenToc(toc);
+      const currentLocationHref = currentLocation.start.href.split("#")[0];
+
+      const chapter = flatToc.find((item) => {
+        const itemHref = item.href.split("#")[0];
+        return itemHref.endsWith(currentLocationHref);
+      });
+
+      if (chapter) {
+        setCurrentChapter(chapter.label.trim());
+      }
+    }
+  }, [currentLocation, toc]);
+
   const handleVisualizeNewHighlight = async (
     cfiRange: string,
     text: string
@@ -237,7 +286,13 @@ export default function BookReaderPage() {
     setShowLoadingModal(true);
 
     try {
-      const newHighlight = await createHighlight(bookId, cfiRange, text, true);
+      const newHighlight = await createHighlight(
+        bookId,
+        cfiRange,
+        text,
+        currentChapter,
+        true
+      );
 
       addAnnotation("highlight", cfiRange, {
         id: newHighlight.id,
@@ -274,7 +329,8 @@ export default function BookReaderPage() {
         annotation.data.id,
         annotation.cfiRangeText,
         bookTitle ?? "Untitled",
-        bookAuthor ?? "Unknown Author"
+        bookAuthor ?? "Unknown Author",
+        annotation.data.chapter ?? null
       );
 
       updateAnnotation(annotation, {

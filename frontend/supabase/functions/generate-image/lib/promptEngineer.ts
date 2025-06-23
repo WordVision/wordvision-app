@@ -4,7 +4,8 @@ import { GoogleGenAI } from "@google/genai";
 export async function improvePrompt(
   bookTitle: string,
   author: string,
-  passage: string
+  passage: string,
+  chapter: string | null
 ): Promise<string> {
   const apiKey = Deno.env.get("EXPO_PUBLIC_GEMINI_TOKEN");
   const prompt = `You are an expert AI Visual Prompt Engineer. 
@@ -64,7 +65,10 @@ Do not include any explanations, conversational preambles, or any text other tha
 The prompt should be ready to be directly copied and pasted into a text-to-image AI.
 I will give you the literary passage for you to analyze in this format:
 
-${bookTitle} by ${author} - ${passage}`;
+${bookTitle} by ${author} from the chapter ${chapter}
+"${passage}"`;
+
+  console.log(prompt);
 
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({

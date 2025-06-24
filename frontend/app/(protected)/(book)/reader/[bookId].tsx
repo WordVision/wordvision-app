@@ -20,7 +20,7 @@ import Loading from "@/components/Loading";
 import { TableOfContents } from "./components/TableOfContents";
 import { HighlightsList } from "./components/HighlightsList";
 import { ImageVisualizer } from "./components/ImageVisualizer";
-import MenuButton from "./components/MenuButton";
+import Menu from "./components/Menu";
 import NavHeader from "./components/NavHeader";
 import ActionBar from "./components/ActionBar";
 
@@ -532,7 +532,19 @@ export default function BookReaderPage() {
           <Text>Book URL is not available.</Text>
         )}
 
-        <MenuButton show={showMenu} />
+        <Menu
+          show={showMenu}
+          menuItemDataList={[
+            {
+              label: "Table of Contents",
+              iconName: "unordered-list",
+            },
+            {
+              label: "Highlights",
+              iconName: "sparkling",
+            },
+          ]}
+        />
 
         <ActionBar
           show={showActionBar}

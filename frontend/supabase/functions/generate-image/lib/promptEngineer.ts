@@ -8,7 +8,7 @@ export async function improvePrompt(
   chapter: string | null
 ): Promise<string> {
   const apiKey = Deno.env.get("EXPO_PUBLIC_GEMINI_TOKEN");
-  const prompt = `You are an expert AI Visual Prompt Engineer. 
+  const instruction = `You are an expert AI Visual Prompt Engineer.
 Your mission is to meticulously analyze the provided literary passage and transform its narrative essence into a single, rich, and highly effective prompt suitable for generating a compelling image with an AI text-to-image model, specifically OpenAI's gpt-image medium.
 
 Do not generate an image. Your goal is to create a prompt to be passed to an image generator.
@@ -65,15 +65,29 @@ Do not include any explanations, conversational preambles, or any text other tha
 The prompt should be ready to be directly copied and pasted into a text-to-image AI.
 I will give you the literary passage for you to analyze in this format:
 
-${bookTitle} by ${author} from the chapter ${chapter}
-"${passage}"`;
+[Book Title] by [Author] - [Book Chapter]: "[passage]"`;
 
-  console.log(prompt);
+  const prompt = `${bookTitle} by ${author} - ${chapter}: "${passage}"`
+
+  console.log({instruction, prompt});
 
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-preview-05-20",
-    contents: prompt,
+    config: {
+      responseMimeType: "text/plain",
+      systemInstruction: instruction
+    },
+    contents: [
+      {
+        role: "user",
+        parts: [
+          {
+            text: prompt,
+          }
+        ]
+      }
+    ]
   });
 
   const text = response.text;

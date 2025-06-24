@@ -1,8 +1,6 @@
+import Icon from "@/components/Icon";
 import { useEffect, useRef } from "react";
 import { Animated, Pressable, Text } from "react-native";
-// import Animated from "react-native-reanimated";
-
-import {Svg, Path} from "react-native-svg";
 
 interface NavHeaderProps {
   title: string;
@@ -72,18 +70,9 @@ export default function NavHeader(p: NavHeaderProps) {
           backgroundColor: pressed ? "#E2E4E9" : "white"
         })}
       >
-        <CloseIcon />
+        <Icon name="close" fill="#525866"/>
       </Pressable>
     </Animated.View>
-  )
-}
-
-
-function CloseIcon() {
-  return (
-    <Svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-      <Path d="M8.00004 7.15164L10.97 4.18164L11.8184 5.03004L8.84844 8.00004L11.8184 10.97L10.97 11.8184L8.00004 8.84844L5.03004 11.8184L4.18164 10.97L7.15164 8.00004L4.18164 5.03004L5.03004 4.18164L8.00004 7.15164Z" fill="#525866"/>
-    </Svg>
   )
 }
 

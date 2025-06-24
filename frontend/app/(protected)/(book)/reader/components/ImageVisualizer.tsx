@@ -6,8 +6,8 @@ import BottomSheet, {
 } from '@gorhom/bottom-sheet';
 import { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 import { Visualization } from '../types';
-import { Path, Svg } from 'react-native-svg';
 import Loading from '@/components/Loading';
+import Icon from '@/components/Icon';
 
 interface Props {
   onClose: () => void;
@@ -215,7 +215,8 @@ export const ImageVisualizer = forwardRef<Ref, Props>((p, ref) => {
             })}
             onPress={() => p.onDelete(p.visualization!)}
           >
-            <TrashIcon/>
+            <Icon name='trash'/>
+
             <Text
               style={{
                 color: "#7F56D9",
@@ -280,16 +281,4 @@ export const ImageVisualizer = forwardRef<Ref, Props>((p, ref) => {
   );
 });
 
-
-function TrashIcon() {
-  return (
-    <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth={1.5}>
-      <Path d="M3 6H21" stroke="#7F56D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      <Path d="M19 6V20C19 21 18 22 17 22H7C6 22 5 21 5 20V6" stroke="#7F56D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      <Path d="M8 6V4C8 3 9 2 10 2H14C15 2 16 3 16 4V6" stroke="#7F56D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      <Path d="M10 11V17" stroke="#7F56D9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      <Path d="M14 11V17" stroke="#7F56D9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-    </Svg>
-  )
-}
 

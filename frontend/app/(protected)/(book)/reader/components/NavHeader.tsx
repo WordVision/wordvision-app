@@ -16,14 +16,14 @@ export default function NavHeader(p: NavHeaderProps) {
     if (p.show) {
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 300,
+        duration: 150,
         useNativeDriver: true,
       }).start();
     }
     else {
       Animated.timing(slideAnim, {
         toValue: -100,
-        duration: 300,
+        duration: 150,
         useNativeDriver: true,
       }).start();
     }
@@ -36,15 +36,12 @@ export default function NavHeader(p: NavHeaderProps) {
         top: 0,
         left: 0,
         right: 0,
-        // height: 80,
         backgroundColor: 'white',
-        // backgroundColor: 'tomato',
         paddingHorizontal: 20,
         paddingVertical: 16,
         display: "flex",
         flexDirection: "row",
         gap: 10,
-        // justifyContent: 'center',
         alignItems: 'center',
         transform: [{ translateY: slideAnim }],
         zIndex: 1,
@@ -54,7 +51,6 @@ export default function NavHeader(p: NavHeaderProps) {
         style={{
           color: 'black',
           fontSize: 20,
-          // backgroundColor: "blue",
           flex: 1
         }}
       >

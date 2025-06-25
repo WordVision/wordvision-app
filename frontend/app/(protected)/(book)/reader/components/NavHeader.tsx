@@ -1,4 +1,5 @@
 import Icon from "@/components/Icon";
+import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Animated, Pressable, Text } from "react-native";
 
@@ -9,6 +10,8 @@ interface NavHeaderProps {
 }
 
 export default function NavHeader(p: NavHeaderProps) {
+
+  const router = useRouter();
 
   const slideAnim = useRef(new Animated.Value(-100)).current; // header starts above screen
 
@@ -47,6 +50,17 @@ export default function NavHeader(p: NavHeaderProps) {
         zIndex: 1,
       }}
     >
+      <Pressable
+        onPress={() => router.back()}
+        style={({pressed}) => ({
+          paddingVertical: 6,
+          paddingHorizontal: 10,
+          borderRadius: 12,
+          backgroundColor: pressed ? "#E2E4E9" : "white"
+        })}
+      >
+        <Icon name="arrow-left" fill="#525866"/>
+      </Pressable>
       <Text
         style={{
           color: 'black',

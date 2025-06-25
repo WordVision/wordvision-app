@@ -52,6 +52,8 @@ export const ImageVisualizer = forwardRef<Ref, Props>((p, ref) => {
         alignItems: 'center'
       }}>
 
+
+      {/* What to display in the image section */}
       {p.error ?
 
         <View
@@ -144,6 +146,8 @@ export const ImageVisualizer = forwardRef<Ref, Props>((p, ref) => {
         />
       }
 
+
+      {/* What to display in the button/label section */}
       {p.error ?
 
         <Pressable

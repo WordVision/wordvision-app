@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Modal,
   View,
   Text,
-  StyleSheet,
   Pressable,
   useColorScheme,
 } from "react-native";
@@ -12,19 +10,28 @@ import { useReader, Reader, Annotation } from "@epubjs-react-native/core";
 import { useFileSystem } from "@epubjs-react-native/expo-file-system";
 import { File, Paths, Directory } from "expo-file-system/next";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { FontAwesome5 } from "@expo/vector-icons";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import BottomSheet, { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { supabase } from "@/lib/supabase";
+
 import Loading from "@/components/Loading";
-import { TableOfContents } from "@/components/TableOfContents";
-import { HighlightsList } from "@/components/HighlightsList";
+
+import { TableOfContents } from "./components/TableOfContents";
+import { HighlightsList } from "./components/HighlightsList";
+import { ImageVisualizer } from "./components/ImageVisualizer";
+import Menu from "./components/Menu";
+import NavHeader from "./components/NavHeader";
+import ActionBar from "./components/ActionBar";
+
 import {
   type Highlight,
   deleteHighlight,
   visualizeHighlight,
   createHighlight,
+  deleteVisualization,
 } from "@/utilities/backendService";
+import { BookSelection, Visualization } from "./types";
 
 export type VisualAnnotation = Annotation<{
   id: string;
@@ -50,17 +57,30 @@ export default function BookReaderPage() {
     - return boolean based on success
   */
 
-  const { goToLocation, addAnnotation, updateAnnotation } = useReader();
+  const {
+    goToLocation,
+    addAnnotation,
+    updateAnnotation,
+    removeSelection,
+    removeAnnotationByCfi,
+  } = useReader();
 
-  const { bookId } = useLocalSearchParams<{ bookId: string }>();
+  const { bookId } = useLocalSearchParams<{bookId: string}>();
 
   const navigation = useNavigation();
   const router = useRouter();
 
   const tableOfContentsRef = useRef<BottomSheetModal>(null);
   const highlightsListRef = useRef<BottomSheetModal>(null);
+  const imageVisualizerRef = useRef<BottomSheet>(null);
 
   const colorScheme = useColorScheme();
+
+
+  const [visualization, setVisualization] = useState<Visualization | undefined>();
+  const [selection, setSelection] = useState<BookSelection | undefined>();
+  const [deleting, setDeleting] = useState<boolean>(false);
+
 
   const [annotations, setAnnotations] = useState<VisualAnnotation[]>([]);
   const [selectedAnnotation, setSelectedAnnotation] =
@@ -76,16 +96,24 @@ export default function BookReaderPage() {
   const [saveErrorMessage, setSaveErrorMessage] = useState<string>(
     "Error saving highlight."
   );
+
+
   const [selectedHighlight, setSelectedHighlight] = useState<Highlight | null>(
     null
   );
   const [bookTitle, setBookTitle] = useState<string | null>(null);
 
+  const [showMenu, setShowMenu] = useState<boolean>(false);
+  const [showActionBar, setShowActionBar] = useState<boolean>(false);
+
+  const [visualizeError, setVisualizeError] = useState<string | undefined>();
+
+
   // Navigation options as a stack child
   useEffect(() => {
     navigation.setOptions({
       title: "Reader",
-      headerShown: true,
+      headerShown: false,
       headerRight: () => (
         <View
           style={{
@@ -135,7 +163,7 @@ export default function BookReaderPage() {
         .from("books")
         .select(
           `
-          id, filename,
+          id, filename, title,
           highlights(
             id,
             text,
@@ -152,6 +180,9 @@ export default function BookReaderPage() {
       console.log({ databaseData: database.data });
 
       if (database.data) {
+
+        setBookTitle(database.data.title);
+
         const file = new File(
           Paths.cache,
           database.data.id,
@@ -226,39 +257,47 @@ export default function BookReaderPage() {
     // setLoading(false);
   }, [bookId]);
 
+
+
   const handleVisualizeNewHighlight = async (
     cfiRange: string,
     text: string
   ) => {
-    setSaveMessage("Visualizing highlight...");
-    setShowLoadingModal(true);
-
     try {
       const newHighlight = await createHighlight(bookId, cfiRange, text, true);
+
+      setVisualization({
+        id: newHighlight.id,
+        img_url: newHighlight.img_url,
+        img_prompt: newHighlight.img_prompt,
+        text: newHighlight.text,
+        location: newHighlight.location,
+      })
 
       addAnnotation("highlight", cfiRange, {
         id: newHighlight.id,
         img_url: newHighlight.img_url,
         img_prompt: newHighlight.img_prompt,
       });
-
-      setShowLoadingModal(false);
-      return true;
-    } catch (error: any) {
+    }
+    catch (error: any) {
       if (error.context?.status === 429) {
-        const errData: { status: number; message: string; reset: number } =
-          await error.context.json();
+        const errData: {
+          status: number;
+          message: string;
+          reset: number
+        } = await error.context.json();
         const resetDate = new Date(errData.reset);
-        setSaveErrorMessage(
-          `${errData.message}\n\nYour quota resets on ${resetDate.toLocaleString()}`
-        );
-      } else {
-        setSaveErrorMessage("Error saving highlight.");
+        setVisualizeError(`${errData.message}\n\nYour quota resets on ${resetDate.toLocaleString()}`);
+      }
+      else {
+        setVisualizeError("Error saving highlight.");
       }
       console.error("Failed to visualize highlight", error);
-      setSaveError(true);
     }
   };
+
+
 
   const handleVisualizeExistingHighlight = async (
     annotation: VisualAnnotation
@@ -435,44 +474,97 @@ export default function BookReaderPage() {
     );
   }
 
+
   return (
-    <GestureHandlerRootView>
+    <>
+      <StatusBar
+        translucent={false}
+      />
+
+      <NavHeader
+        title={bookTitle!}
+        show={showMenu}
+        onHide={() => setShowMenu(false)}
+      />
+
       <View style={{ flex: 1 }}>
         {bookUrl ? (
           <Reader
             src={bookUrl}
             fileSystem={useFileSystem}
             waitForLocationsReady
-            onPressAnnotation={(annotation: VisualAnnotation) => {
-              setSelectedAnnotation(annotation);
-
-              if (annotation.data.img_url) {
-                router.push({
-                  pathname: "/(protected)/(book)/imageModal",
-                  params: {
-                    annotationObj: encodeURIComponent(
-                      JSON.stringify(annotation)
-                    ),
-                  },
-                });
-              } else {
-                setShowEmptyModal(true);
+            manager="continuous"
+            flow="scrolled"
+            onSingleTap={() => {
+              if (!showActionBar && !imageModalVisible) {
+                setShowMenu(!showMenu);
               }
+              setShowActionBar(false);
+            }}
+            onPressAnnotation={(annotation: VisualAnnotation) => {
+              setShowMenu(false);
+              setImageModalVisible(true)
+
+              setVisualization({
+                id: annotation.data.id,
+                img_url: annotation.data.img_url,
+                img_prompt: annotation.data.img_prompt,
+                text: annotation.cfiRangeText,
+                location: annotation.cfiRange,
+              })
+
+              setSelectedAnnotation(annotation);
+              imageVisualizerRef.current?.expand()
+            }}
+            onSelected={(selectedText, cfiRange) => {
+              console.log("onSelected")
+              setShowMenu(false);
+              setShowActionBar(true);
+              setSelection({
+                text: selectedText,
+                location: cfiRange,
+              });
             }}
             initialAnnotations={annotations}
-            menuItems={[
-              {
-                label: "Visualize",
-                action: (cfiRange, text) => {
-                  handleVisualizeNewHighlight(cfiRange, text);
-                  return true;
-                },
-              },
-            ]}
+            menuItems={[]}
           />
         ) : (
           <Text>Book URL is not available.</Text>
         )}
+
+        <Menu
+          show={showMenu}
+          menuItemDataList={[
+            {
+              label: "Table of Contents",
+              iconName: "unordered-list",
+              onPress: () => {
+                setShowMenu(false);
+                tableOfContentsRef.current?.present()
+              }
+            },
+            {
+              label: "Highlights",
+              iconName: "sparkling",
+              onPress: () => {
+                setShowMenu(false);
+                highlightsListRef.current?.present();
+              }
+            },
+          ]}
+        />
+
+        <ActionBar
+          show={showActionBar}
+          onVisualize={async () => {
+            setShowActionBar(false);
+            removeSelection();
+            if (selection) {
+              imageVisualizerRef.current?.expand()
+              await handleVisualizeNewHighlight(selection.location, selection.text);
+            }
+          }}
+        />
 
         <TableOfContents
           ref={tableOfContentsRef}
@@ -492,222 +584,44 @@ export default function BookReaderPage() {
           onClose={() => highlightsListRef.current?.dismiss()}
         />
 
-        {/* Empty highlight modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={showEmptyModal}
-          onRequestClose={() => setShowEmptyModal(!showEmptyModal)}
-        >
-          <View style={styles.modalContainer}>
-            <Pressable
-              style={StyleSheet.absoluteFill}
-              onPress={() => setShowEmptyModal(false)}
-            />
+        <ImageVisualizer
+          ref={imageVisualizerRef}
+          visualization={visualization}
+          error={visualizeError}
+          deleting={deleting}
+          onClose={() => {
+            setVisualization(undefined);
+            setVisualizeError(undefined);
+            setImageModalVisible(false);
+            imageVisualizerRef.current?.close();
+          }}
+          onDelete={async (v: Visualization) => {
+            setDeleting(true);
 
-            <View style={styles.modalView}>
-              <Text>This highlight has no image.</Text>
-              <Pressable
-                onPress={() => {
-                  handleVisualizeExistingHighlight(selectedAnnotation!);
-                }}
-              >
-                <Text style={styles.closeButtonText}>Visualize</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
+            const { error } = await deleteVisualization(v);
+            if (!error) {
+              removeAnnotationByCfi(v.location);
+              setVisualization(undefined);
+              setVisualizeError(undefined);
+              setImageModalVisible(false);
+              imageVisualizerRef.current?.close();
+            }
+            else {
+              setVisualizeError(error.message);
+            }
 
-        {/* Saving highlight spinner */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={showLoadingModal}
-          onRequestClose={() => setShowLoadingModal(!showLoadingModal)}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalView}>
-              {!saveError ? (
-                <Loading message={saveMessage} />
-              ) : (
-                <>
-                  <Text>{saveErrorMessage}</Text>
-                  <Pressable
-                    onPress={() => {
-                      setShowLoadingModal(false);
-                      setSaveError(false);
-                    }}
-                  >
-                    <Text style={styles.closeButtonText}>Close</Text>
-                  </Pressable>
-                </>
-              )}
-            </View>
-          </View>
-        </Modal>
+            setDeleting(false);
+          }}
+          onVisualizeEmptyHighlight={async () => {
+            if (visualization) {
+              setVisualization(undefined);
+              setVisualizeError(undefined);
+              await handleVisualizeNewHighlight(visualization?.location, visualization?.text);
+            }
+          }}
+        />
       </View>
-    </GestureHandlerRootView>
+    </>
   );
 }
 
-const styles = StyleSheet.create({
-  contextMenu: {
-    position: "absolute",
-    backgroundColor: "white",
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: "black",
-    elevation: 5,
-    zIndex: 9999,
-    padding: 5,
-  },
-  settingsButton: {
-    position: "absolute",
-    top: 20,
-    right: 20,
-    backgroundColor: "#007BFF",
-    padding: 10,
-    borderRadius: 25,
-    zIndex: 1,
-  },
-  contextMenuItem: {
-    padding: 10,
-  },
-  modalContainer: {
-    padding: 16,
-    flex: 1,
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  modalView: {
-    height: 300,
-    width: 300,
-    backgroundColor: "white",
-    borderRadius: 5,
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  imageModalView: {
-    width: "100%",
-    backgroundColor: "white",
-    // backgroundColor: "red",
-    borderRadius: 2,
-    padding: 16,
-    // display: "flex",
-    alignItems: "center",
-    // justifyContent: "center",
-  },
-  imageHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  input: {
-    height: 40,
-    borderColor: "gray",
-    borderWidth: 1,
-    width: "80%",
-    marginBottom: 10,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-  },
-  closeButtonText: {
-    marginTop: 20,
-    color: "blue",
-    fontWeight: "bold",
-    fontSize: 20,
-  },
-  refreshIcon: {
-    marginLeft: 16,
-    marginTop: 5,
-  },
-  editTextIcon: {
-    marginLeft: 16,
-    marginTop: 3,
-  },
-  trashIcon: {
-    marginLeft: 16,
-    marginTop: 5,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-    // backgroundColor: "red",
-  },
-  textInput: {
-    // backgroundColor: "red",
-    width: "100%",
-    height: 150,
-    borderColor: "black",
-    borderWidth: 1,
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 20,
-    textAlignVertical: "top",
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-  },
-  button: {
-    flex: 1,
-    backgroundColor: "blue",
-    padding: 10,
-    marginHorizontal: 5,
-    borderRadius: 5,
-    alignItems: "center",
-  },
-  buttonText: {
-    fontSize: 16,
-    color: "white",
-    fontWeight: "bold",
-  },
-  imageHeaderTrash: {
-    position: "absolute",
-    top: 11,
-    right: 11,
-    zIndex: 5,
-  },
-  visualizeButton: {
-    backgroundColor: "#007BFF",
-    color: "#FFFFFF",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    marginTop: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 10,
-    backgroundColor: "#f5f5f5",
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-  },
-  backButton: {
-    padding: 10,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginLeft: 10,
-  },
-});

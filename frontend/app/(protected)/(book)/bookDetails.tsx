@@ -64,7 +64,7 @@ export default function BookDetailsPage() {
           {isOwned ? (
             <TouchableOpacity
               onPress={() =>
-                router.push(`/(protected)/(book)/bookReader?bookId=${book.id}`)
+                router.push(`/(protected)/(book)/reader/${book.id}`)
               }
             >
               <Text style={styles.readButton}>Read</Text>

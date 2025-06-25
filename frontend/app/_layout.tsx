@@ -10,6 +10,8 @@ import { ReaderProvider } from "@epubjs-react-native/core";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import AuthProvider from "@/utilities/authProvider";
 import { BookProvider } from "@/contexts/BookContext";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -19,8 +21,12 @@ export default function RootLayout() {
       <AuthProvider>
         <BookProvider>
           <ReaderProvider>
-            <StatusBar translucent={true} style="auto" />
-            <Slot />
+            <GestureHandlerRootView>
+              <BottomSheetModalProvider>
+                <StatusBar translucent={true} style="auto" />
+                <Slot />
+              </BottomSheetModalProvider>
+            </GestureHandlerRootView>
           </ReaderProvider>
         </BookProvider>
       </AuthProvider>

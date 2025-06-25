@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { Redirect, Slot, Stack, useNavigation } from "expo-router";
-import { Drawer } from "expo-router/drawer";
+import { Redirect, Stack, useNavigation } from "expo-router";
 import { BookContext } from "@/utilities/bookContext";
 import { type Book } from "@/utilities/backendService";
 import { type Highlight } from "@/utilities/backendService";

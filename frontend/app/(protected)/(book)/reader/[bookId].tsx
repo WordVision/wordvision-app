@@ -538,10 +538,18 @@ export default function BookReaderPage() {
             {
               label: "Table of Contents",
               iconName: "unordered-list",
+              onPress: () => {
+                setShowMenu(false);
+                tableOfContentsRef.current?.present()
+              }
             },
             {
               label: "Highlights",
               iconName: "sparkling",
+              onPress: () => {
+                setShowMenu(false);
+                highlightsListRef.current?.present();
+              }
             },
           ]}
         />

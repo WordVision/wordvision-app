@@ -1,15 +1,11 @@
-import Icon, { IconName } from "@/components/Icon";
+import Icon from "@/components/Icon";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, Animated, Platform, View } from "react-native";
-import MenuItem from "./MenuItem";
+import MenuItem, { MenuItemProps } from "./MenuItem";
 
 interface MenuButtonProps {
   show: boolean;
-  menuItemDataList: {
-    label: string;
-    iconName: IconName;
-    onPress?: () => void;
-  }[];
+  menuItemDataList: MenuItemProps[];
 }
 
 export default function Menu(p: MenuButtonProps) {
@@ -29,7 +25,7 @@ export default function Menu(p: MenuButtonProps) {
     }
     else {
       Animated.timing(slideAnim, {
-        toValue: 100,
+        toValue: 150,
         duration: 150,
         useNativeDriver: true,
       }).start();
@@ -70,7 +66,6 @@ export default function Menu(p: MenuButtonProps) {
       <Animated.View
         style={{
           position: "relative",
-          backgroundColor: "white",
           overflow: "hidden",
           borderRadius: 12,
           ...Platform.select({
@@ -84,6 +79,7 @@ export default function Menu(p: MenuButtonProps) {
               elevation: 4,
             }
           }),
+          pointerEvents: open ? "auto": "none",
           opacity: fadeAnim,
         }}
       >
@@ -96,6 +92,7 @@ export default function Menu(p: MenuButtonProps) {
             <MenuItem
               label={mid.label}
               iconName={mid.iconName}
+              onPress={mid.onPress}
             />
 
           </View>

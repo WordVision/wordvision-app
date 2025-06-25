@@ -1,9 +1,10 @@
 import Icon, { IconName } from "@/components/Icon";
 import { Platform, Pressable, Text } from "react-native";
 
-interface MenuItemProps {
+export interface MenuItemProps {
   label: string;
   iconName: IconName;
+  onPress?: () => void;
 }
 
 export default function MenuItem(p: MenuItemProps) {
@@ -20,6 +21,7 @@ export default function MenuItem(p: MenuItemProps) {
         gap: 4,
         flex: 1,
       })}
+      onPress={p.onPress}
     >
       <Text
       style= {{

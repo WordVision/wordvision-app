@@ -1,4 +1,6 @@
 // supabase/functions/generate-image/lib/imageGenerator.ts
+import { InferenceClient } from "@huggingface/inference";
+
 export async function generateImage(prompt: string): Promise<Blob> {
   const apiKey = Deno.env.get("EXPO_PUBLIC_OPENAI_TOKEN");
 
@@ -36,3 +38,17 @@ export async function generateImage(prompt: string): Promise<Blob> {
 
   return new Blob([bytes], { type: "image/jpeg" });
 }
+
+export async function generateHFImage(prompt: string): Promise<Blob> {
+
+  console.log("🤖 Calling Hugging Face with prompt:", prompt);
+  const hf = new InferenceClient(Deno.env.get("HUGGING_FACE_ACCESS_TOKEN"));
+  const image = await hf.textToImage({
+    inputs: prompt,
+    model: "stabilityai/stable-diffusion-3.5-large"
+  });
+  console.log("🎨 Hugging Face returned image blob");
+  return image;
+
+}
+

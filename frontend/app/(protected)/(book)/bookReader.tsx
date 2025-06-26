@@ -26,13 +26,6 @@ import {
   createHighlight,
 } from "@/utilities/backendService";
 
-interface NavItem {
-  id: string;
-  href: string;
-  label: string;
-  subitems?: NavItem[];
-}
-
 export type VisualAnnotation = Annotation<{
   id: string;
   img_url: string;
@@ -62,8 +55,7 @@ export default function BookReaderPage() {
     goToLocation,
     addAnnotation,
     updateAnnotation,
-    currentLocation,
-    toc,
+    section,
   } = useReader();
 
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
@@ -93,23 +85,7 @@ export default function BookReaderPage() {
   const [selectedHighlight, setSelectedHighlight] = useState<Highlight | null>(
     null
   );
-  const [bookTitle, setBookTitle] = useState<string | null>(null);
-  const [bookAuthor, setBookAuthor] = useState<string | null>(null);
 
-  const [currentChapter, setCurrentChapter] = useState<string | null>(null);
-
-  const flattenToc = (tocItems: NavItem[]): NavItem[] => {
-    let flat: NavItem[] = [];
-    for (const item of tocItems) {
-      // Add the top-level item
-      flat.push(item);
-      // If it has subitems, recursively flatten and add them
-      if (item.subitems && item.subitems.length > 0) {
-        flat = flat.concat(flattenToc(item.subitems));
-      }
-    }
-    return flat;
-  };
 
   // Navigation options as a stack child
   useEffect(() => {
@@ -165,7 +141,7 @@ export default function BookReaderPage() {
         .from("books")
         .select(
           `
-          id, filename, author,
+          id, filename,
           highlights(
             id,
             text,
@@ -189,7 +165,6 @@ export default function BookReaderPage() {
           database.data.filename
         );
 
-        setBookAuthor(database.data.author ?? "Unknown Author");
         if (file.exists) {
           console.log("Found downloaded book.");
           console.log({ file: file.uri });
@@ -260,27 +235,11 @@ export default function BookReaderPage() {
     // setLoading(false);
   }, [bookId]);
 
-  // In BookReaderPage.tsx, replace the existing chapter-finding useEffect
-
-  useEffect(() => {
-    if (currentLocation && toc.length > 0) {
-      const flatToc = flattenToc(toc);
-      const currentLocationHref = currentLocation.start.href.split("#")[0];
-
-      const chapter = flatToc.find((item) => {
-        const itemHref = item.href.split("#")[0];
-        return itemHref.endsWith(currentLocationHref);
-      });
-
-      if (chapter) {
-        setCurrentChapter(chapter.label.trim());
-      }
-    }
-  }, [currentLocation, toc]);
 
   const handleVisualizeNewHighlight = async (
     cfiRange: string,
-    text: string
+    text: string,
+    chapter: string,
   ) => {
     setSaveMessage("Visualizing highlight...");
     setShowLoadingModal(true);
@@ -290,7 +249,7 @@ export default function BookReaderPage() {
         bookId,
         cfiRange,
         text,
-        currentChapter,
+        chapter,
         true
       );
 
@@ -298,6 +257,7 @@ export default function BookReaderPage() {
         id: newHighlight.id,
         img_url: newHighlight.img_url,
         img_prompt: newHighlight.img_prompt,
+        chapter: newHighlight.chapter,
       });
 
       setShowLoadingModal(false);
@@ -328,8 +288,6 @@ export default function BookReaderPage() {
       const highlight = await visualizeHighlight(
         annotation.data.id,
         annotation.cfiRangeText,
-        bookTitle ?? "Untitled",
-        bookAuthor ?? "Unknown Author",
         annotation.data.chapter ?? null
       );
 
@@ -337,10 +295,12 @@ export default function BookReaderPage() {
         id: annotation.data.id,
         img_url: highlight.img_url,
         img_prompt: highlight.img_prompt,
+        chapter: annotation.data.chapter,
       });
 
       annotation.data.img_url = highlight.img_url!;
       annotation.data.img_prompt = highlight.img_prompt!;
+      annotation.data.chapter = highlight.chapter!;
 
       setShowLoadingModal(false);
       setShowEmptyModal(false);
@@ -524,7 +484,7 @@ export default function BookReaderPage() {
               {
                 label: "Visualize",
                 action: (cfiRange, text) => {
-                  handleVisualizeNewHighlight(cfiRange, text);
+                  handleVisualizeNewHighlight(cfiRange, text, section?.label || "");
                   return true;
                 },
               },

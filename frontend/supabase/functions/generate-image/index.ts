@@ -44,7 +44,10 @@ Deno.serve(async (req: Request) => {
     const publicUrl = await uploadImage(supabase, image_id, image);
     console.log("📤 Image uploaded:", publicUrl);
 
-    return Response.json({ img_url: publicUrl });
+    return Response.json({
+      img_url: publicUrl ,
+      img_prompt: improvedPrompt,
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("💥 Error:", message);

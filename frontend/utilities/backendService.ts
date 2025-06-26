@@ -490,18 +490,18 @@ export async function visualizeHighlight(
 ): Promise<Highlight> {
   const image_id = Crypto.randomUUID();
 
-  const genImageRes = await supabase.functions.invoke<{ img_url: string }>(
-    "generate-image",
-    {
-      body: {
-        image_id,
-        passage,
-        book_title: bookTitle,
-        book_author: bookAuthor,
-        chapter,
-      },
-    }
-  );
+  const genImageRes = await supabase.functions.invoke<{
+    img_url: string,
+    img_prompt: string
+  }>("generate-image", {
+    body: {
+      image_id,
+      passage,
+      book_title: bookTitle,
+      book_author: bookAuthor,
+      chapter,
+    },
+  });
 
   if (genImageRes.error) {
     console.error("function visualizeHighlight: genImageRes Error");
@@ -543,7 +543,7 @@ export async function visualizeHighlight(
       .from("highlights")
       .update({
         img_url: genImageRes.data.img_url,
-        img_prompt: passage,
+        img_prompt: genImageRes.data.img_prompt,
       })
       .eq("id", highlightId);
 

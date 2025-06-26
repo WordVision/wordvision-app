@@ -442,25 +442,10 @@ export async function createHighlight(
 
   // if user wants to visualize
   if (visualize) {
-    const { data: bookMeta, error: bookMetaError } = await supabase
-      .from("books")
-      .select("filename, author") // Correctly select both filename and author
-      .eq("id", book_id)
-      .single();
-
-    if (bookMetaError) {
-      throw bookMetaError;
-    }
-
-    const bookTitle = bookMeta?.filename ?? "Untitled";
-    const bookAuthor = bookMeta?.author ?? "Unknown Author"; // Retrieve the author
-
     // Pass the bookAuthor to the visualizeHighlight function
     return await visualizeHighlight(
       highlightId,
       text,
-      bookTitle,
-      bookAuthor,
       chapter
     );
   } else {
@@ -484,10 +469,32 @@ export async function createHighlight(
 export async function visualizeHighlight(
   highlightId: string,
   passage: string,
-  bookTitle: string,
-  bookAuthor: string,
   chapter: string | null
 ): Promise<Highlight> {
+
+  const getHighlightRes = await supabase
+    .from("highlights")
+    .select(`
+      img_url,
+      books(
+        title,
+        author
+      )
+    `)
+    .eq("id", highlightId)
+    .single();
+
+  if (getHighlightRes.error) {
+    console.error("Function visualizeHighlight: getHighlightRes Error");
+    throw getHighlightRes.error;
+  }
+
+  const oldImgUrl: string = getHighlightRes.data.img_url;
+  //@ts-ignore: books will always result to one object
+  const bookTitle: string = getHighlightRes.data.books.title;
+  //@ts-ignore: books will always result to one object
+  const bookAuthor: string = getHighlightRes.data.books.author;
+
   const image_id = Crypto.randomUUID();
 
   const genImageRes = await supabase.functions.invoke<{
@@ -509,20 +516,6 @@ export async function visualizeHighlight(
   }
 
   if (genImageRes.data) {
-    // Get old img url
-    const getHighlightRes = await supabase
-      .from("highlights")
-      .select("img_url")
-      .eq("id", highlightId)
-      .limit(1)
-      .single();
-
-    if (getHighlightRes.error) {
-      console.error("Function visualizeHighlight: getHighlightRes Error");
-      throw getHighlightRes.error;
-    }
-
-    const oldImgUrl: string = getHighlightRes.data.img_url;
 
     if (oldImgUrl) {
       const imgPath = oldImgUrl.split("images/")[1];

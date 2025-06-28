@@ -26,6 +26,7 @@ export interface Highlight {
   book_id: string;
   text: string;
   location: string;
+  chapter?: string;
   img_url?: string;
   img_prompt?: string;
 }
@@ -402,6 +403,7 @@ export async function createHighlight(
   book_id: string,
   location: string,
   text: string,
+  chapter: string | null,
   visualize: boolean = false
 ): Promise<Highlight> {
   // get user
@@ -414,6 +416,7 @@ export async function createHighlight(
     book_id,
     text,
     location,
+    chapter,
   });
 
   // Handle any database errors
@@ -439,15 +442,12 @@ export async function createHighlight(
 
   // if user wants to visualize
   if (visualize) {
-    const bookMeta = await supabase
-      .from("books")
-      .select("filename")
-      .eq("id", book_id)
-      .single();
-
-    const bookTitle = bookMeta.data?.filename ?? "Untitled";
-
-    return await visualizeHighlight(highlightId, text, bookTitle);
+    // Pass the bookAuthor to the visualizeHighlight function
+    return await visualizeHighlight(
+      highlightId,
+      text,
+      chapter
+    );
   } else {
     // Get newly created highlight id
     const { data, error } = await supabase
@@ -469,20 +469,46 @@ export async function createHighlight(
 export async function visualizeHighlight(
   highlightId: string,
   passage: string,
-  bookTitle: string
+  chapter: string | null
 ): Promise<Highlight> {
+
+  const getHighlightRes = await supabase
+    .from("highlights")
+    .select(`
+      img_url,
+      books(
+        title,
+        author
+      )
+    `)
+    .eq("id", highlightId)
+    .single();
+
+  if (getHighlightRes.error) {
+    console.error("Function visualizeHighlight: getHighlightRes Error");
+    throw getHighlightRes.error;
+  }
+
+  const oldImgUrl: string = getHighlightRes.data.img_url;
+  //@ts-ignore: books will always result to one object
+  const bookTitle: string = getHighlightRes.data.books.title;
+  //@ts-ignore: books will always result to one object
+  const bookAuthor: string = getHighlightRes.data.books.author;
+
   const image_id = Crypto.randomUUID();
 
-  const genImageRes = await supabase.functions.invoke<{ img_url: string }>(
-    "generate-image",
-    {
-      body: {
-        image_id,
-        passage,
-        book_title: bookTitle,
-      },
-    }
-  );
+  const genImageRes = await supabase.functions.invoke<{
+    img_url: string,
+    img_prompt: string
+  }>("generate-image", {
+    body: {
+      image_id,
+      passage,
+      book_title: bookTitle,
+      book_author: bookAuthor,
+      chapter,
+    },
+  });
 
   if (genImageRes.error) {
     console.error("function visualizeHighlight: genImageRes Error");
@@ -490,20 +516,6 @@ export async function visualizeHighlight(
   }
 
   if (genImageRes.data) {
-    // Get old img url
-    const getHighlightRes = await supabase
-      .from("highlights")
-      .select("img_url")
-      .eq("id", highlightId)
-      .limit(1)
-      .single();
-
-    if (getHighlightRes.error) {
-      console.error("Function visualizeHighlight: getHighlightRes Error");
-      throw getHighlightRes.error;
-    }
-
-    const oldImgUrl: string = getHighlightRes.data.img_url;
 
     if (oldImgUrl) {
       const imgPath = oldImgUrl.split("images/")[1];
@@ -524,7 +536,7 @@ export async function visualizeHighlight(
       .from("highlights")
       .update({
         img_url: genImageRes.data.img_url,
-        img_prompt: passage,
+        img_prompt: genImageRes.data.img_prompt,
       })
       .eq("id", highlightId);
 

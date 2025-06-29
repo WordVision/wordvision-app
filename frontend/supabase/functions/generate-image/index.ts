@@ -1,12 +1,16 @@
-// supabase/functions/generate-image/index.ts
 import { SupabaseClient } from "../_shared/supabaseClient.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 import { getUserFromRequest } from "./lib/auth.ts";
 import { generateImage } from "./lib/imageGenerator.ts";
 import { improvePrompt } from "./lib/promptEngineer.ts";
 import { uploadImage } from "./lib/uploader.ts";
+import {
+  createRateLimiter,
+  checkRateLimit,
+  RateLimitError,
+} from "./lib/rateLimiter.ts";
 
 Deno.serve(async (req: Request) => {
-  // This is needed for invoking from a browser.
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -16,6 +20,7 @@ Deno.serve(async (req: Request) => {
 
     const { image_id, passage, book_title, book_author, chapter } =
       await req.json();
+
     console.log("📝 Request body parsed:", {
       image_id,
       passage,
@@ -29,6 +34,9 @@ Deno.serve(async (req: Request) => {
 
     const user_id = await getUserFromRequest(supabase);
     console.log("👤 Authenticated user ID:", user_id);
+
+    const ratelimit = createRateLimiter();
+    await checkRateLimit(ratelimit, user_id);
 
     const improvedPrompt = await improvePrompt(
       book_title,
@@ -44,16 +52,46 @@ Deno.serve(async (req: Request) => {
     const publicUrl = await uploadImage(supabase, image_id, image);
     console.log("📤 Image uploaded:", publicUrl);
 
-    return Response.json({
-      img_url: publicUrl ,
-      img_prompt: improvedPrompt,
-    });
+    return new Response(
+      JSON.stringify({
+        img_url: publicUrl,
+        img_prompt: improvedPrompt,
+      }),
+      {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
+    );
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    if (err instanceof RateLimitError) {
+      console.warn("🚫 RateLimitError thrown:", err.message);
+      return new Response(
+        JSON.stringify({
+          status: 429,
+          message: err.message,
+          reset: err.reset,
+        }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
+    const message = err instanceof Error ? err.message : "Unhandled error";
     console.error("💥 Error:", message);
     return new Response(JSON.stringify({ status: 500, message }), {
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json",
+      },
     });
   }
 });

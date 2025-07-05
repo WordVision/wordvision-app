@@ -30,6 +30,7 @@ export type VisualAnnotation = Annotation<{
   id: string;
   img_url: string;
   img_prompt: string;
+  chapter?: string | null;
 }>;
 
 export default function BookReaderPage() {
@@ -50,7 +51,12 @@ export default function BookReaderPage() {
     - return boolean based on success
   */
 
-  const { goToLocation, addAnnotation, updateAnnotation } = useReader();
+  const {
+    goToLocation,
+    addAnnotation,
+    updateAnnotation,
+    section,
+  } = useReader();
 
   const { bookId } = useLocalSearchParams<{ bookId: string }>();
 
@@ -79,7 +85,7 @@ export default function BookReaderPage() {
   const [selectedHighlight, setSelectedHighlight] = useState<Highlight | null>(
     null
   );
-  const [bookTitle, setBookTitle] = useState<string | null>(null);
+
 
   // Navigation options as a stack child
   useEffect(() => {
@@ -141,7 +147,8 @@ export default function BookReaderPage() {
             text,
             location,
             img_url,
-            img_prompt
+            img_prompt,
+            chapter
           )
         `
         )
@@ -157,6 +164,7 @@ export default function BookReaderPage() {
           database.data.id,
           database.data.filename
         );
+
         if (file.exists) {
           console.log("Found downloaded book.");
           console.log({ file: file.uri });
@@ -200,6 +208,7 @@ export default function BookReaderPage() {
                   id: annotation.id,
                   img_url: annotation.img_url,
                   img_prompt: annotation.img_prompt,
+                  chapter: annotation.chapter,
                 },
                 sectionIndex: 0, // not sure why but Annotation type needs this
                 cfiRangeText: annotation.text,
@@ -226,20 +235,29 @@ export default function BookReaderPage() {
     // setLoading(false);
   }, [bookId]);
 
+
   const handleVisualizeNewHighlight = async (
     cfiRange: string,
-    text: string
+    text: string,
+    chapter: string,
   ) => {
     setSaveMessage("Visualizing highlight...");
     setShowLoadingModal(true);
 
     try {
-      const newHighlight = await createHighlight(bookId, cfiRange, text, true);
+      const newHighlight = await createHighlight(
+        bookId,
+        cfiRange,
+        text,
+        chapter,
+        true
+      );
 
       addAnnotation("highlight", cfiRange, {
         id: newHighlight.id,
         img_url: newHighlight.img_url,
         img_prompt: newHighlight.img_prompt,
+        chapter: newHighlight.chapter,
       });
 
       setShowLoadingModal(false);
@@ -270,17 +288,19 @@ export default function BookReaderPage() {
       const highlight = await visualizeHighlight(
         annotation.data.id,
         annotation.cfiRangeText,
-        bookTitle ?? "Untitled"
+        annotation.data.chapter ?? null
       );
 
       updateAnnotation(annotation, {
         id: annotation.data.id,
         img_url: highlight.img_url,
         img_prompt: highlight.img_prompt,
+        chapter: annotation.data.chapter,
       });
 
       annotation.data.img_url = highlight.img_url!;
       annotation.data.img_prompt = highlight.img_prompt!;
+      annotation.data.chapter = highlight.chapter!;
 
       setShowLoadingModal(false);
       setShowEmptyModal(false);
@@ -464,7 +484,7 @@ export default function BookReaderPage() {
               {
                 label: "Visualize",
                 action: (cfiRange, text) => {
-                  handleVisualizeNewHighlight(cfiRange, text);
+                  handleVisualizeNewHighlight(cfiRange, text, section?.label || "");
                   return true;
                 },
               },

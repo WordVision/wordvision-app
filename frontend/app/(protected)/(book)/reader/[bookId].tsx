@@ -9,7 +9,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useReader, Reader, Annotation } from "@epubjs-react-native/core";
 import { useFileSystem } from "@epubjs-react-native/expo-file-system";
 import { File, Paths, Directory } from "expo-file-system/next";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { FontAwesome5 } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetModal } from "@gorhom/bottom-sheet";
@@ -65,7 +65,6 @@ export default function BookReaderPage() {
   const { bookId } = useLocalSearchParams<{bookId: string}>();
 
   const navigation = useNavigation();
-  const router = useRouter();
 
   const tableOfContentsRef = useRef<BottomSheetModal>(null);
   const highlightsListRef = useRef<BottomSheetModal>(null);
@@ -80,23 +79,10 @@ export default function BookReaderPage() {
   const [bookUrl, setBookUrl] = useState<string | null>(null);
   const [loadingBook, setLoadingBook] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showLoadingModal, setShowLoadingModal] = useState<boolean>(false);
-  const [showEmptyModal, setShowEmptyModal] = useState<boolean>(false);
   const [imageModalVisible, setImageModalVisible] = useState<boolean>(false);
-  const [saveError, setSaveError] = useState<boolean>(false);
-  const [saveMessage, setSaveMessage] = useState<string>("Saving highlight...");
-  const [saveErrorMessage, setSaveErrorMessage] = useState<string>(
-    "Error saving highlight."
-  );
-
-  const [selectedHighlight, setSelectedHighlight] = useState<Highlight | null>(
-    null
-  );
   const [bookTitle, setBookTitle] = useState<string | null>(null);
-
   const [showMenu, setShowMenu] = useState<boolean>(false);
   const [showActionBar, setShowActionBar] = useState<boolean>(false);
-
   const [visualizeError, setVisualizeError] = useState<string | undefined>();
 
 
@@ -313,9 +299,6 @@ export default function BookReaderPage() {
   const handleVisualizeExistingHighlight = async (
     annotation: VisualAnnotation
   ) => {
-    setSaveMessage("Visualizing highlight...");
-    setShowLoadingModal(true);
-
     try {
       const highlight = await visualizeHighlight(
         annotation.data.id,
@@ -323,41 +306,34 @@ export default function BookReaderPage() {
         annotation.data.chapter ?? null
       );
 
-      updateAnnotation(annotation, {
+      const newData: Visualization = {
         id: annotation.data.id,
+        text: annotation.data.text,
+        location: annotation.data.location,
         img_url: highlight.img_url,
         img_prompt: highlight.img_prompt,
         chapter: annotation.data.chapter,
-      });
+      }
 
-      annotation.data.img_url = highlight.img_url!;
-      annotation.data.img_prompt = highlight.img_prompt!;
-      annotation.data.chapter = highlight.chapter!;
+      updateAnnotation(annotation, newData);
+      annotation.data = newData;
+      setSelectedAnnotation(annotation);
 
-      setShowLoadingModal(false);
-      setShowEmptyModal(false);
-
-      router.push({
-        pathname: "/(protected)/(book)/imageModal",
-        params: {
-          annotationObj: encodeURIComponent(JSON.stringify(annotation)),
-        },
-      });
-
-      return true;
-    } catch (error: any) {
+    }
+    catch (error: any) {
       if (error.context?.status === 429) {
-        const errData: { status: number; message: string; reset: number } =
-          await error.context.json();
+        const errData: {
+          status: number;
+          message: string;
+          reset: number
+        } = await error.context.json();
         const resetDate = new Date(errData.reset);
-        setSaveErrorMessage(
-          `${errData.message}\n\nYour quota resets on ${resetDate.toLocaleString()}`
-        );
-      } else {
-        setSaveErrorMessage("Error saving highlight.");
+        setVisualizeError(`${errData.message}\n\nYour quota resets on ${resetDate.toLocaleString()}`);
+      }
+      else {
+        setVisualizeError("Error saving highlight.");
       }
       console.error("Failed to visualize highlight", error);
-      setSaveError(true);
     }
   };
 

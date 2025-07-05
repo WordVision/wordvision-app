@@ -25,8 +25,6 @@ import NavHeader from "./components/NavHeader";
 import ActionBar from "./components/ActionBar";
 
 import {
-  type Highlight,
-  // deleteHighlight,
   visualizeHighlight,
   createHighlight,
   deleteVisualization,
@@ -508,15 +506,6 @@ export default function BookReaderPage() {
             }}
             initialAnnotations={annotations}
             menuItems={[]}
-            // menuItems={[
-            //   {
-            //     label: "Visualize",
-            //     action: (cfiRange, text) => {
-            //       handleVisualizeNewHighlight(cfiRange, text, section?.label || "");
-            //       return true;
-            //     },
-            //   },
-            // ]}
           />
         ) : (
           <Text>Book URL is not available.</Text>

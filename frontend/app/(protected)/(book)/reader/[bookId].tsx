@@ -33,12 +33,7 @@ import {
 } from "@/utilities/backendService";
 import { BookSelection, Visualization } from "./types";
 
-export type VisualAnnotation = Annotation<{
-  id: string;
-  img_url: string;
-  img_prompt: string;
-  chapter?: string | null;
-}>;
+export type VisualAnnotation = Annotation<Visualization>;
 
 export default function BookReaderPage() {
   /*
@@ -78,15 +73,10 @@ export default function BookReaderPage() {
 
   const colorScheme = useColorScheme();
 
-
-  const [visualization, setVisualization] = useState<Visualization | undefined>();
   const [selection, setSelection] = useState<BookSelection | undefined>();
   const [deleting, setDeleting] = useState<boolean>(false);
-
-
   const [annotations, setAnnotations] = useState<VisualAnnotation[]>([]);
-  const [selectedAnnotation, setSelectedAnnotation] =
-    useState<VisualAnnotation | null>(null);
+  const [selectedAnnotation, setSelectedAnnotation] = useState<VisualAnnotation>();
   const [bookUrl, setBookUrl] = useState<string | null>(null);
   const [loadingBook, setLoadingBook] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -276,21 +266,30 @@ export default function BookReaderPage() {
         true
       );
 
-      setVisualization({
-        id: newHighlight.id,
-        img_url: newHighlight.img_url,
-        img_prompt: newHighlight.img_prompt,
-        text: newHighlight.text,
-        location: newHighlight.location,
-        chapter: newHighlight.chapter,
-      })
-
       addAnnotation("highlight", cfiRange, {
         id: newHighlight.id,
+        text: newHighlight.text,
+        location: newHighlight.location,
         img_url: newHighlight.img_url,
         img_prompt: newHighlight.img_prompt,
         chapter: newHighlight.chapter,
       });
+
+      setSelectedAnnotation({
+        type: "highlight",
+        cfiRange: newHighlight.location,
+        cfiRangeText: newHighlight.text,
+        data: {
+          id: newHighlight.id,
+          text: newHighlight.text,
+          location: newHighlight.location,
+          img_url: newHighlight.img_url,
+          img_prompt: newHighlight.img_prompt,
+          chapter: newHighlight.chapter,
+        },
+        sectionIndex: 0,
+      })
+
     }
     catch (error: any) {
       if (error.context?.status === 429) {
@@ -519,15 +518,6 @@ export default function BookReaderPage() {
               setShowMenu(false);
               setImageModalVisible(true)
 
-              setVisualization({
-                id: annotation.data.id,
-                img_url: annotation.data.img_url,
-                img_prompt: annotation.data.img_prompt,
-                text: annotation.cfiRangeText,
-                location: annotation.cfiRange,
-                chapter: annotation.data.chapter,
-              })
-
               setSelectedAnnotation(annotation);
               imageVisualizerRef.current?.expand()
             }}
@@ -610,11 +600,11 @@ export default function BookReaderPage() {
 
         <ImageVisualizer
           ref={imageVisualizerRef}
-          visualization={visualization}
+          visualization={selectedAnnotation?.data}
           error={visualizeError}
           deleting={deleting}
           onClose={() => {
-            setVisualization(undefined);
+            setSelectedAnnotation(undefined);
             setVisualizeError(undefined);
             setImageModalVisible(false);
             imageVisualizerRef.current?.close();
@@ -625,7 +615,7 @@ export default function BookReaderPage() {
             const { error } = await deleteVisualization(v);
             if (!error) {
               removeAnnotationByCfi(v.location);
-              setVisualization(undefined);
+              setSelectedAnnotation(undefined);
               setVisualizeError(undefined);
               setImageModalVisible(false);
               imageVisualizerRef.current?.close();
@@ -639,15 +629,10 @@ export default function BookReaderPage() {
           onVisualizeEmptyHighlight={async () => {
 
             if (selectedAnnotation) {
-              setVisualization(undefined);
+              setSelectedAnnotation(undefined);
               setVisualizeError(undefined);
               await handleVisualizeExistingHighlight(selectedAnnotation)
             }
-            // if (visualization) {
-            //   setVisualization(undefined);
-            //   setVisualizeError(undefined);
-            //   await handleVisualizeNewHighlight(visualization?.location, visualization?.text, );
-            // }
           }}
         />
       </View>

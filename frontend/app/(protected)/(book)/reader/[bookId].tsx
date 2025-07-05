@@ -26,7 +26,7 @@ import ActionBar from "./components/ActionBar";
 
 import {
   type Highlight,
-  deleteHighlight,
+  // deleteHighlight,
   visualizeHighlight,
   createHighlight,
   deleteVisualization,
@@ -37,6 +37,7 @@ export type VisualAnnotation = Annotation<{
   id: string;
   img_url: string;
   img_prompt: string;
+  chapter?: string | null;
 }>;
 
 export default function BookReaderPage() {
@@ -63,6 +64,7 @@ export default function BookReaderPage() {
     updateAnnotation,
     removeSelection,
     removeAnnotationByCfi,
+    section,
   } = useReader();
 
   const { bookId } = useLocalSearchParams<{bookId: string}>();
@@ -96,7 +98,6 @@ export default function BookReaderPage() {
   const [saveErrorMessage, setSaveErrorMessage] = useState<string>(
     "Error saving highlight."
   );
-
 
   const [selectedHighlight, setSelectedHighlight] = useState<Highlight | null>(
     null
@@ -169,7 +170,8 @@ export default function BookReaderPage() {
             text,
             location,
             img_url,
-            img_prompt
+            img_prompt,
+            chapter
           )
         `
         )
@@ -188,6 +190,7 @@ export default function BookReaderPage() {
           database.data.id,
           database.data.filename
         );
+
         if (file.exists) {
           console.log("Found downloaded book.");
           console.log({ file: file.uri });
@@ -231,6 +234,7 @@ export default function BookReaderPage() {
                   id: annotation.id,
                   img_url: annotation.img_url,
                   img_prompt: annotation.img_prompt,
+                  chapter: annotation.chapter,
                 },
                 sectionIndex: 0, // not sure why but Annotation type needs this
                 cfiRangeText: annotation.text,
@@ -258,13 +262,19 @@ export default function BookReaderPage() {
   }, [bookId]);
 
 
-
   const handleVisualizeNewHighlight = async (
     cfiRange: string,
-    text: string
+    text: string,
+    chapter: string,
   ) => {
     try {
-      const newHighlight = await createHighlight(bookId, cfiRange, text, true);
+      const newHighlight = await createHighlight(
+        bookId,
+        cfiRange,
+        text,
+        chapter,
+        true
+      );
 
       setVisualization({
         id: newHighlight.id,
@@ -272,12 +282,14 @@ export default function BookReaderPage() {
         img_prompt: newHighlight.img_prompt,
         text: newHighlight.text,
         location: newHighlight.location,
+        chapter: newHighlight.chapter,
       })
 
       addAnnotation("highlight", cfiRange, {
         id: newHighlight.id,
         img_url: newHighlight.img_url,
         img_prompt: newHighlight.img_prompt,
+        chapter: newHighlight.chapter,
       });
     }
     catch (error: any) {
@@ -309,17 +321,19 @@ export default function BookReaderPage() {
       const highlight = await visualizeHighlight(
         annotation.data.id,
         annotation.cfiRangeText,
-        bookTitle ?? "Untitled"
+        annotation.data.chapter ?? null
       );
 
       updateAnnotation(annotation, {
         id: annotation.data.id,
         img_url: highlight.img_url,
         img_prompt: highlight.img_prompt,
+        chapter: annotation.data.chapter,
       });
 
       annotation.data.img_url = highlight.img_url!;
       annotation.data.img_prompt = highlight.img_prompt!;
+      annotation.data.chapter = highlight.chapter!;
 
       setShowLoadingModal(false);
       setShowEmptyModal(false);
@@ -401,66 +415,66 @@ export default function BookReaderPage() {
   // };
 
   // Function to handle delete image highlight
-  const deleteImageHighlight = async () => {
-    setLoadingBook(true);
-    setError(null);
-
-    try {
-      const response = await fetch(
-        `http://localhost:8000/book/${bookId}/highlight/${highlightId}/image`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${user.accessToken}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        setHighlights((prevHighlights) =>
-          prevHighlights.map((item) =>
-            item.id === highlightId ? { ...item, imgUrl: undefined } : item
-          )
-        );
-        setImageModalVisible(false);
-      } else {
-        const errorData = await response.json();
-        setError(`Error removing image: ${errorData.message}`);
-      }
-    } catch (err) {
-      console.log(`Exception while calling the delete API: ${err}.`);
-      setError("Error removing image.");
-    } finally {
-      setLoadingBook(false);
-    }
-  };
+  // const deleteImageHighlight = async () => {
+  //   setLoadingBook(true);
+  //   setError(null);
+  //
+  //   try {
+  //     const response = await fetch(
+  //       `http://localhost:8000/book/${bookId}/highlight/${highlightId}/image`,
+  //       {
+  //         method: "DELETE",
+  //         headers: {
+  //           Authorization: `Bearer ${user.accessToken}`,
+  //         },
+  //       }
+  //     );
+  //
+  //     if (response.ok) {
+  //       setHighlights((prevHighlights) =>
+  //         prevHighlights.map((item) =>
+  //           item.id === highlightId ? { ...item, imgUrl: undefined } : item
+  //         )
+  //       );
+  //       setImageModalVisible(false);
+  //     } else {
+  //       const errorData = await response.json();
+  //       setError(`Error removing image: ${errorData.message}`);
+  //     }
+  //   } catch (err) {
+  //     console.log(`Exception while calling the delete API: ${err}.`);
+  //     setError("Error removing image.");
+  //   } finally {
+  //     setLoadingBook(false);
+  //   }
+  // };
 
   // Delete highlight with no text from the model
-  const handleDeletehighlight = async () => {
-    if (selectedHighlight) {
-      setLoadingBook(true);
-      setError(null);
-
-      try {
-        // Call the delete API
-        await deleteHighlight(user, bookId, selectedHighlight.id);
-
-        // Remove the selected highlight from the list
-        setHighlights((prevHighlights) =>
-          prevHighlights.filter((item) => item.id !== selectedHighlight.id)
-        );
-
-        // Optionally clear the selectedHighlight
-        setSelectedHighlight(null);
-      } catch (err) {
-        console.log(`Exception while calling the delete API: ${err}.`);
-        setError("Error removing image.");
-      } finally {
-        setLoadingBook(false);
-        setImageModalVisible(false);
-      }
-    }
-  };
+  // const handleDeletehighlight = async () => {
+  //   if (selectedHighlight) {
+  //     setLoadingBook(true);
+  //     setError(null);
+  //
+  //     try {
+  //       // Call the delete API
+  //       await deleteHighlight(user, bookId, selectedHighlight.id);
+  //
+  //       // Remove the selected highlight from the list
+  //       setHighlights((prevHighlights) =>
+  //         prevHighlights.filter((item) => item.id !== selectedHighlight.id)
+  //       );
+  //
+  //       // Optionally clear the selectedHighlight
+  //       setSelectedHighlight(null);
+  //     } catch (err) {
+  //       console.log(`Exception while calling the delete API: ${err}.`);
+  //       setError("Error removing image.");
+  //     } finally {
+  //       setLoadingBook(false);
+  //       setImageModalVisible(false);
+  //     }
+  //   }
+  // };
 
   if (loadingBook) {
     return <Loading message="Loading book..." />;
@@ -511,6 +525,7 @@ export default function BookReaderPage() {
                 img_prompt: annotation.data.img_prompt,
                 text: annotation.cfiRangeText,
                 location: annotation.cfiRange,
+                chapter: annotation.data.chapter,
               })
 
               setSelectedAnnotation(annotation);
@@ -527,6 +542,15 @@ export default function BookReaderPage() {
             }}
             initialAnnotations={annotations}
             menuItems={[]}
+            // menuItems={[
+            //   {
+            //     label: "Visualize",
+            //     action: (cfiRange, text) => {
+            //       handleVisualizeNewHighlight(cfiRange, text, section?.label || "");
+            //       return true;
+            //     },
+            //   },
+            // ]}
           />
         ) : (
           <Text>Book URL is not available.</Text>
@@ -561,7 +585,7 @@ export default function BookReaderPage() {
             removeSelection();
             if (selection) {
               imageVisualizerRef.current?.expand()
-              await handleVisualizeNewHighlight(selection.location, selection.text);
+              await handleVisualizeNewHighlight(selection.location, selection.text, section?.label || "");;
             }
           }}
         />
@@ -613,11 +637,17 @@ export default function BookReaderPage() {
             setDeleting(false);
           }}
           onVisualizeEmptyHighlight={async () => {
-            if (visualization) {
+
+            if (selectedAnnotation) {
               setVisualization(undefined);
               setVisualizeError(undefined);
-              await handleVisualizeNewHighlight(visualization?.location, visualization?.text);
+              await handleVisualizeExistingHighlight(selectedAnnotation)
             }
+            // if (visualization) {
+            //   setVisualization(undefined);
+            //   setVisualizeError(undefined);
+            //   await handleVisualizeNewHighlight(visualization?.location, visualization?.text, );
+            // }
           }}
         />
       </View>

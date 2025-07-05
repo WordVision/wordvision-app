@@ -12,5 +12,6 @@ export interface Visualization extends BookSelection {
   id: string;
   img_url?: string;
   img_prompt?: string;
+  chapter?: string | null;
 }
 

@@ -201,17 +201,19 @@ export default function BookReaderPage() {
 
         if (database.data.highlights.length > 0) {
           setAnnotations(
-            database.data.highlights.map((annotation) => {
+            database.data.highlights.map((data) => {
               const a: VisualAnnotation = {
-                cfiRange: annotation.location,
+                cfiRange: data.location,
                 data: {
-                  id: annotation.id,
-                  img_url: annotation.img_url,
-                  img_prompt: annotation.img_prompt,
-                  chapter: annotation.chapter,
+                  id: data.id,
+                  text: data.text,
+                  location: data.location,
+                  img_url: data.img_url,
+                  img_prompt: data.img_prompt,
+                  chapter: data.chapter,
                 },
                 sectionIndex: 0, // not sure why but Annotation type needs this
-                cfiRangeText: annotation.text,
+                cfiRangeText: data.text,
                 type: "highlight",
               };
               return a;

@@ -3,6 +3,8 @@
 import { Redis } from "@upstash/redis";
 import { Ratelimit } from "@upstash/ratelimit";
 
+const RATE_PER_DAY = 10;
+
 export function createRateLimiter() {
   const redis = new Redis({
     url: Deno.env.get("UPSTASH_REDIS_REST_URL")!,
@@ -11,7 +13,7 @@ export function createRateLimiter() {
 
   const ratelimit = new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(10, "24h"),
+    limiter: Ratelimit.slidingWindow(RATE_PER_DAY, "24h"),
     analytics: true,
     prefix: "@upstash/ratelimit",
   });
@@ -28,7 +30,7 @@ export async function checkRateLimit(ratelimit: Ratelimit, userId: string) {
     const { reset } = await ratelimit.getRemaining(userId);
     console.warn(`🚫 Rate limit exceeded. Resets at: ${reset}`);
     throw new RateLimitError(
-      `Image generation limit exceeded. You only have 10 requests per day`,
+      `Image generation limit exceeded. You only have ${RATE_PER_DAY} request(s) per day`,
       reset
     );
   }

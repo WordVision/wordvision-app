@@ -595,7 +595,7 @@ export default function BookReaderPage() {
   return (
     <>
       <StatusBar
-        translucent={false}
+        hidden={true}
       />
 
       <NavHeader

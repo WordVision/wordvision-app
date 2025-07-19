@@ -9,9 +9,9 @@ export interface BookSelection {
 }
 
 export interface Visualization extends BookSelection {
-  id: string;
-  img_url?: string;
-  img_prompt?: string;
-  chapter?: string | null;
+  id: number;
+  img_url: string | null;
+  img_prompt: string | null;
+  chapter: string | null;
 }
 

@@ -85,6 +85,34 @@ export default function BookReaderPage() {
   }, [user]);
 
 
+  const theme = useMemo(() => ({
+    'body': {
+      background: '#000',
+    },
+    'span': {
+      color: '#fff !important',
+    },
+    'p': {
+      color: '#fff !important',
+      "text-align": "start !important",
+      "font-size": "1.2rem !important",
+      "line-height": "1.5 !important"
+    },
+    'li': {
+      color: '#fff !important',
+    },
+    'h1': {
+      color: '#fff !important',
+    },
+    'a': {
+      'color': '#fff !important',
+      'pointer-events': 'auto',
+      'cursor': 'pointer',
+    },
+    '::selection': {
+      background: 'lightskyblue',
+    },
+  }), []);
 
 
   // Navigation options as a stack child
@@ -584,6 +612,7 @@ export default function BookReaderPage() {
             waitForLocationsReady
             manager="continuous"
             flow="scrolled"
+            defaultTheme={theme}
             onSingleTap={() => {
               if (!showActionBar && !imageModalVisible) {
                 setShowMenu(!showMenu);

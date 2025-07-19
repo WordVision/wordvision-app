@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   View,
   Text,
-  Pressable,
   useColorScheme,
+  AppState,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { useReader, Reader, Annotation } from "@epubjs-react-native/core";
+import { useReader, Reader, Annotation, Location } from "@epubjs-react-native/core";
 import { useFileSystem } from "@epubjs-react-native/expo-file-system";
 import { File, Paths, Directory } from "expo-file-system/next";
 import { useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { FontAwesome5 } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { supabase } from "@/lib/supabase";
 
@@ -30,26 +29,13 @@ import {
   deleteVisualization,
 } from "@/utilities/backendService";
 import { BookSelection, Visualization } from "./types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { User } from "@supabase/supabase-js";
+import LocationSyncMenu from "./components/LocationSyncMenu";
 
 export type VisualAnnotation = Annotation<Visualization>;
 
 export default function BookReaderPage() {
-  /*
-    TODO: Implement functions in backend service
-
-    deleteHighlightImage(id: string)
-    - deletes the following:
-      - image from blob storage
-      - img_url from highlight in database
-      - img_prompt from highlight in database
-    - return boolean based on success
-
-    deleteHighlight(id: string)
-    - deletes the following:
-      - image from blob storage
-      - highlight from database
-    - return boolean based on success
-  */
 
   const {
     goToLocation,
@@ -82,6 +68,23 @@ export default function BookReaderPage() {
   const [showMenu, setShowMenu] = useState<boolean>(false);
   const [showActionBar, setShowActionBar] = useState<boolean>(false);
   const [visualizeError, setVisualizeError] = useState<string | undefined>();
+  const [initialLocation, setInitialLocation] = useState<string>();
+  const [showLocationSyncMenu, setShowLocationSyncMenu] = useState<boolean>(false);
+  const [lastRemoteLocation, setLastRemoteLocation] = useState<string>();
+
+  const [curLocation, setCurLocation] = useState<Location>();
+  const curLocationRef = useRef(curLocation);
+  useEffect(() => {
+    curLocationRef.current = curLocation;
+  }, [curLocation]);
+
+  const [user, setUser] = useState<User>();
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+
 
 
   // Navigation options as a stack child
@@ -123,8 +126,10 @@ export default function BookReaderPage() {
     });
   }, [navigation]);
 
-  // Fetch book data
+
+  // Fetch user and book data
   useEffect(() => {
+
     if (!bookId) {
       setError("No bookId provided");
       setLoadingBook(false);
@@ -134,56 +139,75 @@ export default function BookReaderPage() {
     const fetchBook = async () => {
       setLoadingBook(true);
 
-      const database = await supabase
-        .from("books")
+      // fetch user details
+      const { data: { user }} = await supabase.auth.getUser();
+      if (!user) {
+        setError("Error fetching user details.");
+        setLoadingBook(false);
+        return;
+      }
+      setUser(user);
+
+      // Get book details with regards to user
+      const { data: bookData, error: bookDataError } = await supabase
+        .from("user_books")
         .select(
           `
-          id, filename, title,
-          highlights(
+          last_location,
+          books(
             id,
-            text,
-            location,
-            img_url,
-            img_prompt,
-            chapter
+            filename,
+            title,
+            highlights(
+              id,
+              text,
+              location,
+              img_url,
+              img_prompt,
+              chapter
+            )
           )
         `
         )
-        .eq("id", bookId)
+        .match({
+          "book_id": bookId,
+          "user_id": user.id,
+        })
         .limit(1)
         .single();
 
-      console.log({ databaseData: database.data });
 
-      if (database.data) {
+      if (bookData) {
+        setBookTitle(bookData.books.title);
 
-        setBookTitle(database.data.title);
-
+        // Create file path {user id}-{book file name}
         const file = new File(
           Paths.cache,
-          database.data.id,
-          database.data.filename
+          user.id,
+          bookData.books.filename.split("/").pop()!
         );
 
         if (file.exists) {
+          // Get the book file
           console.log("Found downloaded book.");
           console.log({ file: file.uri });
           setBookUrl(file.uri);
-        } else {
-          const destination = new Directory(Paths.cache, database.data.id);
+        }
+        else {
+          // Download book file to path
+          const destination = new Directory(Paths.cache, user.id);
           if (!destination.exists) {
             destination.create();
           }
 
           const storage = await supabase.storage
             .from("books")
-            .createSignedUrl(database.data.filename, 3600);
+            .createSignedUrl(bookData.books.filename, 3600);
           console.log({ storage });
 
           if (storage.data) {
             const url = storage.data.signedUrl;
             console.log("Downloading Book...");
-
             try {
               const output = await File.downloadFileAsync(url, file);
               if (output.exists) {
@@ -193,15 +217,17 @@ export default function BookReaderPage() {
             } catch (error) {
               console.error(error);
             }
-          } else {
+          }
+          else {
             console.error("Error fetching book from storage:", storage.error);
             setError("Error fetching book.");
           }
         }
 
-        if (database.data.highlights.length > 0) {
+        // Set the book rendition annotations
+        if (bookData.books.highlights.length > 0) {
           setAnnotations(
-            database.data.highlights.map((data) => {
+            bookData.books.highlights.map((data) => {
               const a: VisualAnnotation = {
                 cfiRange: data.location,
                 data: {
@@ -220,11 +246,40 @@ export default function BookReaderPage() {
             })
           );
         }
-      } else {
-        console.error(
-          "Error fetching book data from database:",
-          database.error
-        );
+
+        // Set initial book location
+        const key = `${user.id}-${bookId}`;
+        try {
+          const remoteLocation = bookData.last_location;
+          const localLocation = await AsyncStorage.getItem(key);
+          console.log({remoteLocation, localLocation});
+
+          if (localLocation !== null) {
+            setInitialLocation(localLocation);
+            setLastRemoteLocation(remoteLocation || undefined);
+
+            if (remoteLocation !== localLocation) {
+              console.log("remoteLocation is not equal to localLocation")
+              console.log("must prompt user to choose between locations");
+              setShowLocationSyncMenu(true);
+            }
+          }
+          else if (remoteLocation !== null) {
+            console.error("No local location found. Automatically using remote location");
+            setInitialLocation(remoteLocation);
+          }
+          else {
+            console.warn("no local or remote locations found");
+          }
+        }
+        catch (e) {
+          console.error(`error reading location value with key: ${key}`)
+          return;
+        }
+
+      }
+      else {
+        console.error("Error fetching book data from database:", bookDataError);
         setError("Error fetching book.");
       }
 
@@ -236,6 +291,51 @@ export default function BookReaderPage() {
     // setBookUrl("https://s3.amazonaws.com/moby-dick/OPS/package.opf");
     // setLoading(false);
   }, [bookId]);
+
+
+  // Setup listener to save location to remote when user stops reading
+  useEffect(() => {
+
+    const saveLocationToRemote = async () => {
+      const location = curLocationRef.current?.start.cfi;
+      console.log("saving current location to remote: ", location);
+
+      // Update book's current location
+      const updateBook = await supabase
+        .from("user_books")
+        .update({
+          last_location: location,
+        })
+        .match({
+          "book_id": bookId,
+          "user_id": userRef.current?.id,
+        })
+
+      // Handle any database errors
+      if (updateBook.error) {
+        console.error("Failed to save current location to remote: ", updateBook.error);
+        throw updateBook.error;
+      }
+    };
+
+    // When the screen loses focus (e.g., user navigates away)
+    const unsubscribeBeforeRemove = navigation.addListener('beforeRemove', () => {
+      saveLocationToRemote();
+    });
+
+    // When user closes or backgrounds the app
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState.match(/inactive|background/)) {
+        saveLocationToRemote();
+      }
+    });
+
+    // Cleanup listeners on unmount
+    return () => {
+      unsubscribeBeforeRemove();
+      subscription.remove();
+    };
+  }, [navigation]);
 
 
   const handleVisualizeNewHighlight = async (
@@ -506,7 +606,16 @@ export default function BookReaderPage() {
                 location: cfiRange,
               });
             }}
+            onLocationChange={async (totalLocations, currentLocation, progress, currentSection) => {
+              console.log(currentLocation);
+              setCurLocation(currentLocation);
+              if (user) {
+                console.log("Saving: ", currentLocation.start.cfi);
+                await AsyncStorage.setItem(`${user.id}-${bookId}`, currentLocation.start.cfi)
+              }
+            }}
             initialAnnotations={annotations}
+            initialLocation={initialLocation}
             menuItems={[]}
           />
         ) : (
@@ -602,6 +711,25 @@ export default function BookReaderPage() {
             }
           }}
         />
+
+        <LocationSyncMenu
+          show={showLocationSyncMenu}
+          remoteLocation={lastRemoteLocation!}
+          localLocation={initialLocation!}
+
+          onClose={() => setShowLocationSyncMenu(false)}
+          onNo={() => {
+            setShowLocationSyncMenu(false);
+          }}
+          onYes={() => {
+            if (lastRemoteLocation) {
+              console.log(lastRemoteLocation)
+              goToLocation(lastRemoteLocation);
+              setShowLocationSyncMenu(false);
+            }
+          }}
+        />
+
       </View>
     </>
   );

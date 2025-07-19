@@ -688,7 +688,13 @@ export default function BookReaderPage() {
         <TableOfContents
           ref={tableOfContentsRef}
           onPressSection={(section) => {
-            goToLocation(section.href.split("/")[1]);
+            console.log(section);
+            if (section.href.startsWith("/")) {
+              goToLocation(section.href.split("/")[1]);
+            }
+            else {
+              goToLocation(section.href);
+            }
             tableOfContentsRef.current?.dismiss();
           }}
           onClose={() => tableOfContentsRef.current?.dismiss()}

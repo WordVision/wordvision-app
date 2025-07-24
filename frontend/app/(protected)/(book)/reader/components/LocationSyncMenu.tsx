@@ -2,7 +2,6 @@ import { Pressable, Platform, View, Modal, Text, StyleSheet } from "react-native
 
 interface LocationSyncMenuProps {
   show: boolean;
-  onClose: () => void;
   onNo: () => void;
   onYes: () => void;
   localLocation: string;
@@ -15,7 +14,6 @@ export default function LocationSyncMenu(p: LocationSyncMenuProps) {
       animationType="fade"
       transparent={true}
       visible={p.show}
-      onRequestClose={p.onClose}
     >
       <View style={styles.modalScreenContainer}>
         <View style={styles.modalContentContainer}>

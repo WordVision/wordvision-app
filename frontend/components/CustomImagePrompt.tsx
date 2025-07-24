@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { visualizeHighlight } from '@/utilities/backendService';
-import { VisualAnnotation } from '../app/(protected)/(book)/bookReader';
+import { VisualAnnotation } from '../app/(protected)/(book)/reader/[bookId]';
 import Loading from '@/components/Loading';
 import { useReader } from '@epubjs-react-native/core';
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View, Image } from "react-native";
 import Animated, { SlideInDown } from "react-native-reanimated";
-import { VisualAnnotation } from "./bookReader";
+import { VisualAnnotation } from "./reader/[bookId]";
 import Feather from "@expo/vector-icons/Feather";
 import CustomImagePrompt from "@/components/CustomImagePrompt";
 

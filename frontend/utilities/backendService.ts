@@ -2,6 +2,7 @@ import { Alert, Platform } from "react-native";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import * as Crypto from "expo-crypto";
+import { Visualization } from "@/app/(protected)/(book)/reader/types";
 
 // const backendURL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
 // const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://10.0.2.2:8000";
@@ -563,3 +564,54 @@ export async function visualizeHighlight(
 
   return data;
 }
+
+/**
+ * Deletes an image visualization from the remote db and storage
+ *
+ * @async
+ * @function deleteVisualization
+ * @param {Visualization} v - details of the image to delete
+ *
+ * @returns
+ * A promise that resolves to:
+ * {error: null} on success or
+ * {error: {message: string}} on error
+ */
+export async function deleteVisualization(v: Visualization): Promise<{error: { message: string } | null}> {
+
+  if (v.img_url) {
+    // Get image path
+    const imgPath = v.img_url.split("images/")[1];
+
+    // Delete image
+    const { error: deleteImageError } = await supabase
+      .storage
+      .from('images')
+      .remove([imgPath])
+
+    if (deleteImageError) {
+      return {
+        error: {
+          message: deleteImageError.message
+        }
+      }
+    }
+  }
+
+  // Delete highlight
+  const response = await supabase
+    .from('highlights')
+    .delete()
+    .eq('id', v.id);
+
+  if (response.error) {
+    return {
+      error: {
+        message: response.error.message
+      }
+    }
+  }
+
+  return { error: null }
+}
+

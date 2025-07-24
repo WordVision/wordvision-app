@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import React, { forwardRef, useCallback, useMemo } from 'react';
 import { View, StyleSheet, Text, Pressable } from 'react-native';
-import { Section, useReader } from '@epubjs-react-native/core';
+import { Annotation, Section, useReader } from '@epubjs-react-native/core';
 import {
   BottomSheetModal,
   BottomSheetModalProvider,
@@ -11,19 +11,19 @@ import {
 import { BottomSheetModalMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 
 interface Props {
-  onPressSection: (section: Section) => void;
+  onPressItem: (annotation: Annotation) => void;
   onClose: () => void;
 }
 export type Ref = BottomSheetModalMethods;
 
-export const TableOfContents = forwardRef<Ref, Props>(({ onPressSection, onClose }, ref) => {
+export const HighlightsList = forwardRef<Ref, Props>(({ onPressItem, onClose }, ref) => {
 
-    const { toc, section, theme } = useReader();
+    const { theme, annotations } = useReader();
     const snapPoints = useMemo(() => ['70%', '100%'], []);
 
-    const renderItem = useCallback(({ item }: { item: Section }) => (
+    const renderItem = useCallback(({ item }: { item: Annotation }) => (
         <Pressable
-          key={item.id}
+          key={item.cfiRange}
           style={({pressed}) => ({
             backgroundColor: pressed ? "#fff" : "#dbdbdb",
             marginVertical: 2,
@@ -32,22 +32,21 @@ export const TableOfContents = forwardRef<Ref, Props>(({ onPressSection, onClose
             paddingHorizontal: 16,
             borderRadius: 5
           })}
-          onPress={() => onPressSection(item)}
+          onPress={() => onPressItem(item)}
         >
           <View>
             <Text
               style={{
-                color: section?.id === item.id
-                  ? "red"
-                  : "black",
+                color: "black",
               }}
+              numberOfLines={2}
             >
-              {item.label}
+              &quot;{item.cfiRangeText}&quot;
             </Text>
           </View>
         </Pressable>
       ),
-      [onPressSection, section?.id]
+      [onPressItem]
     );
 
     const header = useCallback(() => (
@@ -62,7 +61,7 @@ export const TableOfContents = forwardRef<Ref, Props>(({ onPressSection, onClose
           <Text style={{
             fontSize: 24
           }}>
-            Table of Contents
+            Highlights
           </Text>
 
           <Pressable onPress={onClose}>
@@ -72,35 +71,35 @@ export const TableOfContents = forwardRef<Ref, Props>(({ onPressSection, onClose
           </Pressable>
         </View>
       ),
-      [onClose, toc]
+      [onClose, annotations]
     );
 
     return (
-
-      <BottomSheetModalProvider>
-        <BottomSheetModal
-          ref={ref}
-          index={0}
-          snapPoints={snapPoints}
-          enablePanDownToClose
-          style={{
-            ...styles.container,
-            backgroundColor: theme.body.background,
-          }}
-          handleStyle={{ backgroundColor: theme.body.background }}
-          backgroundStyle={{ backgroundColor: theme.body.background }}
-        >
-          <BottomSheetFlatList
-            data={toc}
-            showsVerticalScrollIndicator={false}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            ListHeaderComponent={header}
-            style={{ width: '100%' }}
-            maxToRenderPerBatch={20}
-          />
-        </BottomSheetModal>
-      </BottomSheetModalProvider>
+      <BottomSheetModal
+        ref={ref}
+        index={0}
+        snapPoints={snapPoints}
+        enablePanDownToClose
+        style={{
+          ...styles.container,
+          backgroundColor: theme.body.background,
+        }}
+        handleStyle={{ backgroundColor: theme.body.background }}
+        backgroundStyle={{ backgroundColor: theme.body.background }}
+      >
+        <BottomSheetFlatList
+          data={annotations.filter(
+            (annotation) =>
+              !annotation?.data?.isTemp && annotation.type !== 'mark'
+          )}
+          showsVerticalScrollIndicator={false}
+          keyExtractor={(item) => item.cfiRange}
+          renderItem={renderItem}
+          ListHeaderComponent={header}
+          style={{ width: '100%' }}
+          maxToRenderPerBatch={20}
+        />
+      </BottomSheetModal>
     );
   }
 );

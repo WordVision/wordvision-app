@@ -88,6 +88,7 @@ export default function BookStore() {
       showAddButton
       onAddBook={handleAddBook}
       ownedBooks={userLibrary}
+      source="bookstore"
     />
   );
 }

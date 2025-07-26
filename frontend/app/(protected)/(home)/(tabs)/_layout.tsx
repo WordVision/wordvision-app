@@ -40,7 +40,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Library Appears Second */}
       <Tabs.Screen
         name="library"
         options={{

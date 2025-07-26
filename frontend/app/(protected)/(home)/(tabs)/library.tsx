@@ -37,6 +37,11 @@ export default function LibraryScreen() {
   const userBooks = books.filter((book) => userLibrary.includes(book.id));
 
   return (
-    <BookList books={userBooks} loading={loading} refreshBooks={fetchBooks} />
+    <BookList
+      books={userBooks}
+      loading={loading}
+      refreshBooks={fetchBooks}
+      source="library"
+    />
   );
 }

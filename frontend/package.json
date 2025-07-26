@@ -20,6 +20,7 @@
     "@epubjs-react-native/expo-file-system": "^1.1.3",
     "@expo-google-fonts/atkinson-hyperlegible": "^0.2.3",
     "@expo-google-fonts/inter": "^0.4.1",
+    "@expo-google-fonts/playfair-display": "^0.4.1",
     "@expo-google-fonts/quando": "^0.2.3",
     "@expo/vector-icons": "^14.0.2",
     "@google/genai": "^0.12.0",

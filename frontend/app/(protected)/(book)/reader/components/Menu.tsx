@@ -56,7 +56,7 @@ export default function Menu(p: MenuButtonProps) {
     <Animated.View
       style={{
         position: 'absolute',
-        bottom: 32,
+        bottom: 86,
         right: 16,
         transform: [{ translateY: slideAnim }],
         zIndex: 1,

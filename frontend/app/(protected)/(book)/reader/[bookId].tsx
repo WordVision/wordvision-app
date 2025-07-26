@@ -1,55 +1,49 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  useColorScheme,
-} from "react-native";
+// React / React Native
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { View, Text, useColorScheme } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Third-party Libraries
 import { useNavigation } from "@react-navigation/native";
-import { useReader, Reader, Annotation } from "@epubjs-react-native/core";
-import { useFileSystem } from "@epubjs-react-native/expo-file-system";
-import { File, Paths, Directory } from "expo-file-system/next";
 import { useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { FontAwesome5 } from "@expo/vector-icons";
+import {
+  useReader,
+  Reader,
+  Annotation,
+  Location
+} from "@epubjs-react-native/core";
+import { useFileSystem } from "@epubjs-react-native/expo-file-system";
 import BottomSheet, { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { supabase } from "@/lib/supabase";
 
+// Local components
 import Loading from "@/components/Loading";
-
 import { TableOfContents } from "./components/TableOfContents";
 import { HighlightsList } from "./components/HighlightsList";
 import { ImageVisualizer } from "./components/ImageVisualizer";
 import Menu from "./components/Menu";
 import NavHeader from "./components/NavHeader";
 import ActionBar from "./components/ActionBar";
+import LocationSyncMenu from "./components/LocationSyncMenu";
 
+// Utilities & Types
 import {
   visualizeHighlight,
   createHighlight,
   deleteVisualization,
 } from "@/utilities/backendService";
 import { BookSelection, Visualization } from "./types";
+import { supabase } from "@/lib/supabase";
+import { useBookData } from "./hooks/useBookData";
+import { useOnExitScreen } from "@/hooks/useOnExitScreen";
+import { useAuth } from "@/utilities/authProvider";
 
 export type VisualAnnotation = Annotation<Visualization>;
 
 export default function BookReaderPage() {
-  /*
-    TODO: Implement functions in backend service
 
-    deleteHighlightImage(id: string)
-    - deletes the following:
-      - image from blob storage
-      - img_url from highlight in database
-      - img_prompt from highlight in database
-    - return boolean based on success
-
-    deleteHighlight(id: string)
-    - deletes the following:
-      - image from blob storage
-      - highlight from database
-    - return boolean based on success
-  */
+  const { session } = useAuth();
+  const { bookId } = useLocalSearchParams<{bookId: string}>();
 
   const {
     goToLocation,
@@ -60,8 +54,6 @@ export default function BookReaderPage() {
     section,
   } = useReader();
 
-  const { bookId } = useLocalSearchParams<{bookId: string}>();
-
   const navigation = useNavigation();
 
   const tableOfContentsRef = useRef<BottomSheetModal>(null);
@@ -70,172 +62,83 @@ export default function BookReaderPage() {
 
   const colorScheme = useColorScheme();
 
+  const [userId, setUserId] = useState<string>();
   const [selection, setSelection] = useState<BookSelection | undefined>();
   const [deleting, setDeleting] = useState<boolean>(false);
-  const [annotations, setAnnotations] = useState<VisualAnnotation[]>([]);
   const [selectedAnnotation, setSelectedAnnotation] = useState<VisualAnnotation>();
-  const [bookUrl, setBookUrl] = useState<string | null>(null);
-  const [loadingBook, setLoadingBook] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [imageModalVisible, setImageModalVisible] = useState<boolean>(false);
-  const [bookTitle, setBookTitle] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState<boolean>(false);
   const [showActionBar, setShowActionBar] = useState<boolean>(false);
   const [visualizeError, setVisualizeError] = useState<string | undefined>();
+  const [curLocation, setCurLocation] = useState<Location>();
 
+  const theme = useMemo(() => ({
+    'body': {
+      background: '#000',
+    },
+    'span': {
+      color: '#fff !important',
+    },
+    'p': {
+      color: '#fff !important',
+      "text-align": "start !important",
+      "font-size": "1.2rem !important",
+      "line-height": "1.5 !important"
+    },
+    'li': {
+      color: '#fff !important',
+    },
+    'h1': {
+      color: '#fff !important',
+    },
+    'a': {
+      'color': '#fff !important',
+      'pointer-events': 'auto',
+      'cursor': 'pointer',
+    },
+    '::selection': {
+      background: 'lightskyblue',
+    },
+  }), []);
 
-  // Navigation options as a stack child
+  // Do not show navigation header. We are using a custom one.
   useEffect(() => {
-    navigation.setOptions({
-      title: "Reader",
-      headerShown: false,
-      headerRight: () => (
-        <View
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            gap: 16,
-          }}
-        >
-          <Pressable
-            style={({ pressed }) => ({ opacity: pressed ? 0.3 : 1 })}
-            onPress={() => highlightsListRef.current?.present()}
-          >
-            <FontAwesome5
-              name="quote-left"
-              size={20}
-              color={colorScheme === "dark" ? "white" : "black"}
-            />
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => ({ opacity: pressed ? 0.3 : 1 })}
-            onPress={() => tableOfContentsRef.current?.present()}
-          >
-            <FontAwesome5
-              name="list-ul"
-              size={20}
-              color={colorScheme === "dark" ? "white" : "black"}
-            />
-          </Pressable>
-        </View>
-      ),
-    });
+    navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
-  // Fetch book data
+  // Get user id
   useEffect(() => {
-    if (!bookId) {
-      setError("No bookId provided");
-      setLoadingBook(false);
-      return;
+    if (session?.user) {
+      setUserId(session.user.id);
     }
+  }, [session])
 
-    const fetchBook = async () => {
-      setLoadingBook(true);
+  // Fetch book data
+  const bookData = useBookData(userId, bookId);
 
-      const database = await supabase
-        .from("books")
-        .select(
-          `
-          id, filename, title,
-          highlights(
-            id,
-            text,
-            location,
-            img_url,
-            img_prompt,
-            chapter
-          )
-        `
-        )
-        .eq("id", bookId)
-        .limit(1)
-        .single();
+  // Save location to remote when user stops reading
+  useOnExitScreen(useCallback(async () => {
+    const location = curLocation?.start.cfi;
+    console.log("saving current location to remote: ", location);
 
-      console.log({ databaseData: database.data });
+    // Update book's current location
+    const updateBook = await supabase
+      .from("user_books")
+      .update({
+        last_location: location,
+      })
+      .match({
+        "book_id": bookId,
+        "user_id": session?.user?.id,
+      })
 
-      if (database.data) {
+    // Handle any database errors
+    if (updateBook.error) {
+      console.error("Failed to save current location to remote: ", updateBook.error);
+      throw updateBook.error;
+    }
+  }, [curLocation, bookId, session?.user]));
 
-        setBookTitle(database.data.title);
-
-        const file = new File(
-          Paths.cache,
-          database.data.id,
-          database.data.filename
-        );
-
-        if (file.exists) {
-          console.log("Found downloaded book.");
-          console.log({ file: file.uri });
-          setBookUrl(file.uri);
-        } else {
-          const destination = new Directory(Paths.cache, database.data.id);
-          if (!destination.exists) {
-            destination.create();
-          }
-
-          const storage = await supabase.storage
-            .from("books")
-            .createSignedUrl(database.data.filename, 3600);
-          console.log({ storage });
-
-          if (storage.data) {
-            const url = storage.data.signedUrl;
-            console.log("Downloading Book...");
-
-            try {
-              const output = await File.downloadFileAsync(url, file);
-              if (output.exists) {
-                console.log("Book downloaded!");
-                setBookUrl(output.uri);
-              }
-            } catch (error) {
-              console.error(error);
-            }
-          } else {
-            console.error("Error fetching book from storage:", storage.error);
-            setError("Error fetching book.");
-          }
-        }
-
-        if (database.data.highlights.length > 0) {
-          setAnnotations(
-            database.data.highlights.map((data) => {
-              const a: VisualAnnotation = {
-                cfiRange: data.location,
-                data: {
-                  id: data.id,
-                  text: data.text,
-                  location: data.location,
-                  img_url: data.img_url,
-                  img_prompt: data.img_prompt,
-                  chapter: data.chapter,
-                },
-                sectionIndex: 0, // not sure why but Annotation type needs this
-                cfiRangeText: data.text,
-                type: "highlight",
-              };
-              return a;
-            })
-          );
-        }
-      } else {
-        console.error(
-          "Error fetching book data from database:",
-          database.error
-        );
-        setError("Error fetching book.");
-      }
-
-      setLoadingBook(false);
-    };
-
-    fetchBook();
-
-    // setBookUrl("https://s3.amazonaws.com/moby-dick/OPS/package.opf");
-    // setLoading(false);
-  }, [bookId]);
 
 
   const handleVisualizeNewHighlight = async (
@@ -337,128 +240,16 @@ export default function BookReaderPage() {
     }
   };
 
-  // const handleHighlight = async () => {
-  //   if (rendition && selection) {
-  //     setSaveMessage("Saving highlight...");
-  //     setModalVisible(true);
-  //
-  //     try {
-  //       const response = await createUserHighlight(user, bookId, selection);
-  //
-  //       if (response) {
-  //         setModalVisible(false);
-  //         rendition.annotations.add(
-  //           "highlight",
-  //           selection.location,
-  //           undefined,
-  //           undefined,
-  //           "hl",
-  //           {
-  //             fill: "red",
-  //             "fill-opacity": "0.5",
-  //             "mix-blend-mode": "multiply",
-  //           }
-  //         );
-  //         // @ts-ignore: DO NOT REMOVE THIS COMMENT
-  //         // This annotation was added because typescript throws an error
-  //         //   for getContents()[0]
-  //         // The return type for getContents() is outdated and actually returns
-  //         //   Contents[] instead of Contents
-  //         rendition.getContents()[0]?.window?.getSelection()?.removeAllRanges();
-  //
-  //         setHighlights(prev => {
-  //           return [
-  //             ...prev,
-  //             {
-  //               id: response.highlightId,
-  //              ...selection,
-  //             }
-  //           ]
-  //         });
-  //
-  //         setSaveError(false);
-  //       } else {
-  //         console.error("Failed to save highlight", response);
-  //         setSaveError(true);
-  //       }
-  //     } catch (error) {
-  //       console.error("Failed to save highlight", error);
-  //       setSaveError(true);
-  //     }
-  //   }
-  //   setContextMenu({ visible: false, x: 0, y: 0 });
-  // };
 
-  // Function to handle delete image highlight
-  // const deleteImageHighlight = async () => {
-  //   setLoadingBook(true);
-  //   setError(null);
-  //
-  //   try {
-  //     const response = await fetch(
-  //       `http://localhost:8000/book/${bookId}/highlight/${highlightId}/image`,
-  //       {
-  //         method: "DELETE",
-  //         headers: {
-  //           Authorization: `Bearer ${user.accessToken}`,
-  //         },
-  //       }
-  //     );
-  //
-  //     if (response.ok) {
-  //       setHighlights((prevHighlights) =>
-  //         prevHighlights.map((item) =>
-  //           item.id === highlightId ? { ...item, imgUrl: undefined } : item
-  //         )
-  //       );
-  //       setImageModalVisible(false);
-  //     } else {
-  //       const errorData = await response.json();
-  //       setError(`Error removing image: ${errorData.message}`);
-  //     }
-  //   } catch (err) {
-  //     console.log(`Exception while calling the delete API: ${err}.`);
-  //     setError("Error removing image.");
-  //   } finally {
-  //     setLoadingBook(false);
-  //   }
-  // };
-
-  // Delete highlight with no text from the model
-  // const handleDeletehighlight = async () => {
-  //   if (selectedHighlight) {
-  //     setLoadingBook(true);
-  //     setError(null);
-  //
-  //     try {
-  //       // Call the delete API
-  //       await deleteHighlight(user, bookId, selectedHighlight.id);
-  //
-  //       // Remove the selected highlight from the list
-  //       setHighlights((prevHighlights) =>
-  //         prevHighlights.filter((item) => item.id !== selectedHighlight.id)
-  //       );
-  //
-  //       // Optionally clear the selectedHighlight
-  //       setSelectedHighlight(null);
-  //     } catch (err) {
-  //       console.log(`Exception while calling the delete API: ${err}.`);
-  //       setError("Error removing image.");
-  //     } finally {
-  //       setLoadingBook(false);
-  //       setImageModalVisible(false);
-  //     }
-  //   }
-  // };
-
-  if (loadingBook) {
+  if (bookData.fetching) {
     return <Loading message="Loading book..." />;
   }
 
-  if (error) {
+
+  if (bookData.error) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text>{error}</Text>
+        <Text>{bookData.error}</Text>
       </View>
     );
   }
@@ -467,23 +258,24 @@ export default function BookReaderPage() {
   return (
     <>
       <StatusBar
-        translucent={false}
+        hidden={true}
       />
 
       <NavHeader
-        title={bookTitle!}
+        title={bookData.title!}
         show={showMenu}
         onHide={() => setShowMenu(false)}
       />
 
       <View style={{ flex: 1 }}>
-        {bookUrl ? (
+        {bookData.fileURI ? (
           <Reader
-            src={bookUrl}
+            src={bookData.fileURI}
             fileSystem={useFileSystem}
             waitForLocationsReady
             manager="continuous"
             flow="scrolled"
+            defaultTheme={theme}
             onSingleTap={() => {
               if (!showActionBar && !imageModalVisible) {
                 setShowMenu(!showMenu);
@@ -506,7 +298,16 @@ export default function BookReaderPage() {
                 location: cfiRange,
               });
             }}
-            initialAnnotations={annotations}
+            onLocationChange={async (totalLocations, currentLocation, progress, currentSection) => {
+              console.log(currentLocation);
+              setCurLocation(currentLocation);
+              if (userId) {
+                console.log("Saving: ", currentLocation.start.cfi);
+                await AsyncStorage.setItem(`${userId}-${bookId}`, currentLocation.start.cfi)
+              }
+            }}
+            initialAnnotations={bookData.initialAnnotations}
+            initialLocation={bookData.initialLocation}
             menuItems={[]}
           />
         ) : (
@@ -550,7 +351,13 @@ export default function BookReaderPage() {
         <TableOfContents
           ref={tableOfContentsRef}
           onPressSection={(section) => {
-            goToLocation(section.href.split("/")[1]);
+            console.log(section);
+            if (section.href.startsWith("/")) {
+              goToLocation(section.href.split("/")[1]);
+            }
+            else {
+              goToLocation(section.href);
+            }
             tableOfContentsRef.current?.dismiss();
           }}
           onClose={() => tableOfContentsRef.current?.dismiss()}
@@ -602,6 +409,22 @@ export default function BookReaderPage() {
             }
           }}
         />
+
+        <LocationSyncMenu
+          show={bookData.locationConflict !== null}
+          remoteLocation={bookData.locationConflict?.remote!}
+          localLocation={bookData.locationConflict?.local!}
+          onNo={() => bookData.resolveLocationConflict()}
+          onYes={() => {
+            const location = bookData.locationConflict?.remote;
+            if (location) {
+              console.log(location)
+              goToLocation(location);
+              bookData.resolveLocationConflict();
+            }
+          }}
+        />
+
       </View>
     </>
   );

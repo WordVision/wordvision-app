@@ -6,8 +6,7 @@ import { Visualization } from "@/app/(protected)/(book)/reader/types";
 
 // const backendURL = process.env.EXPO_PUBLIC_BACKEND_API_URL;
 // const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://10.0.2.2:8000";
-const backendURL =
-  Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://192.168.2.59:8000";
+const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://192.168.2.59:8000";
 // const backendURL = Platform.OS === "web" ? "http://127.0.0.1:8000" : "http://10.0.0.145:8000";
 
 // Book interface
@@ -22,14 +21,14 @@ export interface Book {
 
 // Highlight interface
 export interface Highlight {
-  id: string;
+  id: number;
   user_id: string;
   book_id: string;
   text: string;
   location: string;
-  chapter?: string;
-  img_url?: string;
-  img_prompt?: string;
+  chapter: string | null;
+  img_url: string | null;
+  img_prompt: string | null;
 }
 
 export interface Selection {
@@ -468,7 +467,7 @@ export async function createHighlight(
 }
 
 export async function visualizeHighlight(
-  highlightId: string,
+  highlightId: number,
   passage: string,
   chapter: string | null
 ): Promise<Highlight> {
@@ -490,11 +489,9 @@ export async function visualizeHighlight(
     throw getHighlightRes.error;
   }
 
-  const oldImgUrl: string = getHighlightRes.data.img_url;
-  //@ts-ignore: books will always result to one object
+  const oldImgUrl: string | null = getHighlightRes.data.img_url;
   const bookTitle: string = getHighlightRes.data.books.title;
-  //@ts-ignore: books will always result to one object
-  const bookAuthor: string = getHighlightRes.data.books.author;
+  const bookAuthor: string | null = getHighlightRes.data.books.author;
 
   const image_id = Crypto.randomUUID();
 

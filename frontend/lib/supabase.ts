@@ -2,6 +2,7 @@ import { AppState } from "react-native";
 import "react-native-url-polyfill/auto";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
+import { Database } from "./database.types";
 
 const LOCAL_ENV = process.env.EXPO_PUBLIC_LOCAL_ENV;
 
@@ -14,7 +15,7 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 if (!supabaseAnonKey)
   throw "missing .env variable: EXPO_PUBLIC_SUPABASE_ANON_KEY";
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,

@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   text: {
-    fontWeight: "800",
+    fontWeight: "700",
     fontFamily: "Inter",
     textAlign: "center",
     letterSpacing: 2,

@@ -18,6 +18,7 @@ import { useEffect } from "react";
 
 import { supabase } from "@/lib/supabase";
 import HeaderLayout from "./Headerlayout";
+import { ScrollView } from "react-native-gesture-handler";
 
 interface Book {
   id: string;
@@ -75,25 +76,6 @@ const BookList: React.FC<BookListProps> = ({
 
   return (
     <View style={styles.rootContainer}>
-      <HeaderLayout text={headerText}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => router.push("/(protected)/(home)/user")}
-        >
-          <Avatar
-            firstName={userData?.firstName ?? ""}
-            lastName={userData?.lastName ?? ""}
-            width={55}
-            height={55}
-            fontSize={23}
-          />
-        </TouchableOpacity>
-      </HeaderLayout>
-
-      {source === "bookstore" && (
-        <Text style={styles.featuredText}>Featured</Text>
-      )}
-
       <View style={styles.container}>
         <FlatList
           data={books}
@@ -106,6 +88,28 @@ const BookList: React.FC<BookListProps> = ({
                 No books available.
               </ThemedText>
             </View>
+          }
+          ListHeaderComponent={
+            <>
+              <HeaderLayout text={headerText}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => router.push("/(protected)/(home)/user")}
+                >
+                  <Avatar
+                    firstName={userData?.firstName ?? ""}
+                    lastName={userData?.lastName ?? ""}
+                    width={55}
+                    height={55}
+                    fontSize={23}
+                  />
+                </TouchableOpacity>
+              </HeaderLayout>
+
+              {source === "bookstore" && (
+                <Text style={styles.featuredText}>Featured</Text>
+              )}
+            </>
           }
           renderItem={({ item }) => {
             const alreadyOwned = ownedBooks.includes(item.id);
@@ -128,8 +132,21 @@ const BookList: React.FC<BookListProps> = ({
                   )}
 
                   <View style={styles.textContainer}>
-                    <Text style={styles.bookTitle}>{item.title}</Text>
-                    <Text style={styles.bookAuthor}>{item.author}</Text>
+                    <Text
+                      style={styles.bookTitle}
+                      numberOfLines={2}
+                      ellipsizeMode="tail"
+                    >
+                      {item.title}
+                    </Text>
+
+                    <Text
+                      style={styles.bookAuthor}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {item.author}
+                    </Text>
                   </View>
 
                   {showAddButton && !alreadyOwned && (
@@ -217,6 +234,8 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     padding: 8,
+    flex: 1,
+    maxWidth: "100%",
   },
   bookTitle: {
     fontSize: 16,

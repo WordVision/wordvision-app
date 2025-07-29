@@ -30,7 +30,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="bookStore"
         options={{
-          title: "Book Store",
+          title: "Discover",
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon
               name={focused ? "cart" : "cart-outline"}

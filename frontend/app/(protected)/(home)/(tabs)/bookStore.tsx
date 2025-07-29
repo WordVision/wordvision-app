@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useBooks } from "@/contexts/BookContext";
 import BookList from "@/components/BookList";
 import { useAuth } from "@/utilities/authProvider";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { BottomTabNavigationOptions } from "@react-navigation/bottom-tabs";
-import { useNavigation } from "@react-navigation/native";
-import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import { supabase } from "@/lib/supabase";
 
 interface Book {
@@ -20,20 +17,10 @@ export default function BookStore() {
   const { books, userLibrary, fetchBooks, fetchUserLibrary } = useBooks();
   const { session } = useAuth();
   const [loading, setLoading] = useState(true);
-  const navigation = useNavigation();
 
   useFocusEffect(() => {
     checkAndFetchData();
   });
-
-  useEffect(() => {
-    navigation.setOptions({
-      title: "Book Store",
-      tabBarIcon: ({ color, focused }) => (
-        <TabBarIcon name={focused ? "cart" : "cart-outline"} color={color} />
-      ),
-    } as BottomTabNavigationOptions);
-  }, [navigation]);
 
   const checkAndFetchData = async () => {
     const cachedBooks = await AsyncStorage.getItem("books");

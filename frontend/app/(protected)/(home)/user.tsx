@@ -7,7 +7,7 @@ import {
   Text,
   Modal,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useNavigation } from "expo-router";
 
 import HeaderLayout from "@/components/Headerlayout";
 import Avatar from "@/components/Avator";
@@ -26,6 +26,7 @@ interface UserInfo {
 
 export default function User() {
   const router = useRouter();
+  const navigation = useNavigation();
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
@@ -68,7 +69,8 @@ export default function User() {
     }
 
     init();
-  }, []);
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
 
   const handleSave = async () => {
     const { data, error } = await supabase.auth.updateUser({
@@ -286,6 +288,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "column",
     justifyContent: "space-between",
+    marginTop: 35,
   },
   inputContainer: {
     width: "100%",

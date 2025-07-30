@@ -192,6 +192,7 @@ const BookList: React.FC<BookListProps> = ({
 const styles = StyleSheet.create({
   rootContainer: {
     flex: 1,
+    marginTop: 35,
   },
   container: {
     flex: 1,
@@ -257,8 +258,9 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardList: {
-    flex: 1,
+    paddingBottom: 16,
   },
+
   featuredText: {
     paddingHorizontal: 16,
     fontSize: 24,

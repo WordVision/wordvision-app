@@ -3,7 +3,6 @@ import React, { useEffect } from "react";
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { DrawerNavigationOptions } from "@react-navigation/drawer";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -11,13 +10,7 @@ export default function TabLayout() {
 
   // Navigation options as a drawer child
   useEffect(() => {
-    navigation.setOptions({
-      drawerLabel: "Home",
-      title: "WordVision",
-      drawerIcon: ({ color, focused }) => (
-        <TabBarIcon name={focused ? "book" : "book-outline"} color={color} />
-      ),
-    } as DrawerNavigationOptions);
+    navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
   return (

@@ -15,7 +15,7 @@ export default function LibraryScreen() {
 
   const checkAndFetchData = async () => {
     if (session?.user?.id) {
-      await fetchUserLibrary(session.user.id); // Fetch only user's books
+      await fetchUserLibrary(session.user.id);
     }
     setLoading(false);
   };

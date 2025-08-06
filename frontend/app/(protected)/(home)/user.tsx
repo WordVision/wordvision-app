@@ -10,7 +10,7 @@ import {
 import { useRouter, useNavigation } from "expo-router";
 
 import HeaderLayout from "@/components/Headerlayout";
-import Avatar from "@/components/Avator";
+import Avatar from "@/components/Avatar";
 import Icon from "@/components/Icon";
 
 import { supabase } from "@/lib/supabase";
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
   },
   modelLogoutButton: {
     flex: 1,
-    backgroundColor: "#4F7BFE",
+    backgroundColor: "#375DFB",
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: "center",
